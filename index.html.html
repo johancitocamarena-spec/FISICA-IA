@@ -122,7 +122,7 @@
         ];
 
         // Función para llamar a Gemini API con prompt estricto en Física
-        async function callGeminiAPI(messages, apiKey = "") {
+        async function callGeminiAPI(messages, apiKey = "AQ.Ab8RN6JyXFXxjtqRu3VBkjyjkPT98pWfnJxwfcSPms16ioCj_w") {
             const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
             
             const systemInstruction = `Eres "Física Master IA", un profesor universitario experto EXCLUSIVAMENTE en Física, limitado estrictamente a los temas de Termodinámica, Electromagnetismo y Óptica (y física general relacionada).
