@@ -106,7 +106,7 @@
                 icon: 'flame',
                 description: 'Estudio de la transferencia de energía en forma de calor y trabajo mecánico en sistemas macroscópicos.',
                 formulas: [
-                    { name: 'Primera Ley de la Termodinámica', tex: '\\Delta U = Q - W' },
+                    { name: 'Primera Ley de la Termodinámica', tex: 'ΔU = Q - W' },
                     { name: 'Calor Sensible', tex: 'Q = m \\cdot c \\cdot \\Delta T' },
                     { name: 'Eficiencia Máxima (Carnot)', tex: '\\eta = 1 - \\frac{T_C}{T_H}' }
                 ]
@@ -210,7 +210,7 @@
                     title: 'Nueva Sesión de Física',
                     messages: [{
                         role: 'model',
-                        content: '¡Nueva sesión iniciada! Recuerda que estoy programado **exclusivamente para responder temas de Física**. ¿Qué ejercicio o concepto analizamos hoy?'
+                        content: '¡Nueva sesión iniciada! Recuerda que estoy programado exclusivamente para responder temas de Física. ¿Qué ejercicio o concepto analizamos hoy?'
                     }]
                 };
                 setChats(prev => [newSession, ...prev]);
@@ -296,6 +296,7 @@
                 try {
                     const systemPrompt = `Eres "Física Master IA", un tutor y profesor universitario experto especializado EXCLUSIVAMENTE en Física (Termodinámica, Electromagnetismo, Óptica, Mecánica Clásica, Física Moderna, etc.).
 REGLA ESTRICTA E INQUEBRANTABLE:
+Nunca uses código LaTeX, signos de dólar ($), barras invertidas (\\Delta, \\frac), asteriscos (**) ni almohadillas (###). Escribe todas las ecuaciones y unidades usando texto plano limpio y símbolos Unicode normales (por ejemplo: ΔU = Q - W, θ, η, ×, ÷, ², ³, √).
 Tu única área de conocimiento permitida es la FÍSICA. Si el usuario te pregunta, pide ayuda o conversa sobre cualquier tema ajeno a la física (por ejemplo: programación, historia, cocina, política, entretenimiento, biología sin enfoque biofísico, o matemáticas puras sin aplicación física), debes rechazar la solicitud de manera amable, breve y profesional, indicándole que estás programado exclusivamente para asistir con temas y problemas de Física.
 
 Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos, problemas escritos, gráficas):
