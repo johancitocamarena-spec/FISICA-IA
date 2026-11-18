@@ -471,28 +471,6 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                         </div>
 
                         {/* Parte inferior: Configuración práctica de API Key de Gemini */}
-                        <div className="p-4 border-t border-slate-800/80 bg-[#080c17] space-y-2">
-                            <div className="flex items-center justify-between">
-                                <label htmlFor="gemini-api-input" className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
-                                    <Icon name="key" className="w-3.5 h-3.5 text-amber-400" />
-                                    <span>API Key de Gemini</span>
-                                </label>
-                                <span className={`w-2 h-2 rounded-full ${(apiKey || DEFAULT_API_KEY) ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-amber-500'}`} title={(apiKey || DEFAULT_API_KEY) ? 'Clave configurada' : 'Clave pendiente'} />
-                            </div>
-                            <input
-                                id="gemini-api-input"
-                                type="password"
-                                value={apiKey}
-                                onChange={(e) => handleApiKeyChange(e.target.value)}
-                                placeholder="AIzaSy..."
-                                className="w-full bg-slate-900/90 border border-slate-700/80 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-600 focus:outline-none font-mono transition-colors"
-                            />
-                            <p className="text-[10px] text-slate-500 leading-tight">
-                                Se guarda localmente en tu navegador.
-                            </p>
-                        </div>
-                    </aside>
-
                     {/* ================================================================
                         2. ÁREA PRINCIPAL DERECHA
                        ================================================================ */}
