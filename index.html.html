@@ -255,7 +255,7 @@
                 if (fileInputRef.current) fileInputRef.current.value = '';
             };
 
-            // Envío de mensaje a Gemini API (gemini-2.5-flash)
+            // Envío de mensaje a Gemini API (gemini-3.8-flash)
             const handleSendMessage = async (e) => {
                 if (e) e.preventDefault();
                 if ((!inputMessage.trim() && !selectedImage) || isLoading) return;
