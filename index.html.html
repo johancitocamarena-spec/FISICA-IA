@@ -9,17 +9,24 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
         @keyframes dashFlow {
             to { stroke-dashoffset: -36; }
         }
         .animate-current {
             animation: dashFlow linear infinite;
         }
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-4px); }
+        }
+        .animate-float {
+            animation: floatSlow 3.5s ease-in-out infinite;
+        }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
+<body class="bg-slate-50 text-slate-800 min-h-screen">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -29,12 +36,65 @@
         const DEFAULT_API_KEY = "";
         const MODEL_NAME = "gemini-2.5-flash";
 
+        /* =========================================================
+           ILUSTRACIONES VECTORIALES PARA DAR VIDA A CADA ÁREA
+           ========================================================= */
+        function TopicIllustration({ id }) {
+            if (id === 'optica') {
+                return (
+                    <svg viewBox="0 0 220 90" className="w-full h-24 rounded-xl bg-gradient-to-r from-sky-50 to-indigo-50 border border-sky-100">
+                        {/* Prisma dispersando luz blanca en arcoíris */}
+                        <line x1="15" y1="55" x2="88" y2="42" stroke="#f59e0b" strokeWidth="3.5" strokeLinecap="round" />
+                        <polygon points="105,15 72,75 138,75" fill="#e0f2fe" stroke="#0284c7" strokeWidth="2.5" strokeLinejoin="round" />
+                        <line x1="122" y1="42" x2="205" y2="26" stroke="#ef4444" strokeWidth="2.5" />
+                        <line x1="124" y1="46" x2="205" y2="38" stroke="#f97316" strokeWidth="2.5" />
+                        <line x1="126" y1="50" x2="205" y2="50" stroke="#eab308" strokeWidth="2.5" />
+                        <line x1="128" y1="54" x2="205" y2="62" stroke="#22c55e" strokeWidth="2.5" />
+                        <line x1="130" y1="58" x2="205" y2="74" stroke="#3b82f6" strokeWidth="2.5" />
+                    </svg>
+                );
+            }
+            if (id === 'termodinamica') {
+                return (
+                    <svg viewBox="0 0 220 90" className="w-full h-24 rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100">
+                        {/* Termómetro + partículas energéticas */}
+                        <rect x="42" y="14" width="14" height="46" rx="7" fill="#ffffff" stroke="#ea580c" strokeWidth="2.5" />
+                        <circle cx="49" cy="66" r="12" fill="#ef4444" stroke="#ea580c" strokeWidth="2.5" />
+                        <rect x="46" y="28" width="6" height="34" fill="#ef4444" rx="3" />
+                        {/* Ondas de calor */}
+                        <path d="M 85 65 Q 92 52 85 40 Q 78 28 85 16" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" />
+                        <path d="M 105 65 Q 112 52 105 40 Q 98 28 105 16" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
+                        <path d="M 125 65 Q 132 52 125 40 Q 118 28 125 16" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" />
+                        {/* Moléculas */}
+                        <circle cx="165" cy="30" r="6" fill="#f97316" />
+                        <circle cx="188" cy="48" r="5" fill="#ef4444" />
+                        <circle cx="160" cy="62" r="7" fill="#eab308" />
+                        <line x1="165" y1="30" x2="188" y2="48" stroke="#fdba74" strokeWidth="1.5" strokeDasharray="3 2" />
+                    </svg>
+                );
+            }
+            return (
+                <svg viewBox="0 0 220 90" className="w-full h-24 rounded-xl bg-gradient-to-r from-amber-50 to-blue-50 border border-blue-100">
+                    {/* Imán en herradura y líneas de campo */}
+                    <path d="M 55 25 L 85 25 A 20 20 0 0 1 85 65 L 55 65" fill="none" stroke="#2563eb" strokeWidth="12" strokeLinecap="butt" />
+                    <rect x="45" y="19" width="18" height="12" fill="#ef4444" rx="2" />
+                    <rect x="45" y="59" width="18" height="12" fill="#1d4ed8" rx="2" />
+                    <text x="54" y="28" textAnchor="middle" fill="#ffffff" fontSize="8" fontWeight="bold">N</text>
+                    <text x="54" y="68" textAnchor="middle" fill="#ffffff" fontSize="8" fontWeight="bold">S</text>
+                    {/* Rayo eléctrico */}
+                    <polygon points="155,14 135,46 152,46 144,76 174,40 156,40" fill="#facc15" stroke="#ca8a04" strokeWidth="2" strokeLinejoin="round" />
+                </svg>
+            );
+        }
+
         const TOPICS = [
             {
                 id: 'optica',
                 name: 'Luz y Óptica',
                 category: 'Óptica Geométrica',
-                description: 'Propagación de la luz, reflexión en espejos curvos, refracción y formación de imágenes.',
+                badgeColor: 'bg-sky-100 text-sky-700 border-sky-200',
+                accentBorder: 'border-sky-500 ring-2 ring-sky-500/20 bg-white',
+                description: 'Propagación de la luz, reflexión en espejos curvos, refracción en prismas y formación de imágenes.',
                 formulas: [
                     { name: 'Ecuación de Espejos y Lentes', eq: '1 / f = (1 / do) + (1 / di)' },
                     { name: 'Aumento Lateral', eq: 'M = hi / ho = -di / do' },
@@ -44,8 +104,10 @@
             {
                 id: 'termodinamica',
                 name: 'Termodinámica',
-                category: 'Termodinámica',
-                description: 'Estudio del calor, el trabajo mecánico, la energía interna y los procesos térmicos.',
+                category: 'Calor y Energía',
+                badgeColor: 'bg-orange-100 text-orange-700 border-orange-200',
+                accentBorder: 'border-orange-500 ring-2 ring-orange-500/20 bg-white',
+                description: 'Estudio del calor, el trabajo mecánico, la energía interna y los procesos térmicos en gases.',
                 formulas: [
                     { name: 'Primera Ley de la Termodinámica', eq: 'ΔU = Q - W' },
                     { name: 'Eficiencia Térmica (Carnot)', eq: 'η = 1 - (Tc / Th)' },
@@ -55,7 +117,9 @@
             {
                 id: 'electromagnetismo',
                 name: 'Electromagnetismo',
-                category: 'Electromagnetismo',
+                category: 'Electricidad y Campos',
+                badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
+                accentBorder: 'border-amber-500 ring-2 ring-amber-500/20 bg-white',
                 description: 'Cargas eléctricas, corriente en circuitos, resistencia, potencial y campos magnéticos.',
                 formulas: [
                     { name: 'Ley de Ohm', eq: 'V = I · R' },
@@ -73,25 +137,20 @@
             "Escribe todas las ecuaciones, variables y unidades usando texto plano limpio y símbolos Unicode normales (por ejemplo: ΔU = Q - W, θ, η, ×, ÷, ², ³, √, °C, J, N, Ω, A, V).";
 
         /* =========================================================
-           SIMULADOR 1: ÓPTICA GEOMÉTRICA (ESTILO PHET)
+           SIMULADOR 1: ÓPTICA GEOMÉTRICA (ESTILO PHET - FONDO BLANCO)
            ========================================================= */
         function OpticsSimulator({ onSendToTutor }) {
-            const [opticalElement, setOpticalElement] = useState('concave_mirror'); // concave_mirror | convex_mirror | converging_lens
-            const [radius, setRadius] = useState(180); // cm
-            const [objectDist, setObjectDist] = useState(140); // cm (do)
-            const [objectHeight, setObjectHeight] = useState(55); // cm (ho)
-            const [rayMode, setRayMode] = useState('principales'); // principales | marginales
+            const [opticalElement, setOpticalElement] = useState('concave_mirror');
+            const [radius, setRadius] = useState(180);
+            const [objectDist, setObjectDist] = useState(140);
+            const [objectHeight, setObjectHeight] = useState(55);
+            const [rayMode, setRayMode] = useState('principales');
             const [showFocal, setShowFocal] = useState(true);
             const [showVirtual, setShowVirtual] = useState(true);
 
-            // Cálculos físicos
-            // Para espejo cóncavo: f = +R/2 (frente al espejo, izquierda)
-            // Para espejo convexo: f = -R/2 (detrás del espejo, derecha)
-            // Para lente convergente: f = +R/2 (derecha de la lente)
             const fAbs = radius / 2;
             const fSigned = opticalElement === 'convex_mirror' ? -fAbs : fAbs;
 
-            // 1/f = 1/do + 1/di  =>  di = (do * f) / (do - f)
             const denom = objectDist - fSigned;
             const isAtFocus = Math.abs(denom) < 0.5;
             const di = isAtFocus ? (fSigned > 0 ? 9999 : -9999) : (objectDist * fSigned) / denom;
@@ -101,7 +160,6 @@
             const isVirtual = di < 0;
             const isInverted = magnification < 0;
 
-            // Coordenadas SVG (centro óptico en x = 430, eje óptico en y = 180)
             const cx = 430;
             const cy = 180;
             const scale = 1.15;
@@ -109,8 +167,6 @@
             const objX = cx - objectDist * scale;
             const objTopY = cy - objectHeight * scale;
 
-            // En espejos: di > 0 está a la izquierda (cx - di), di < 0 está a la derecha (cx - di)
-            // En lentes: di > 0 está a la derecha (cx + di), di < 0 está a la izquierda (cx + di)
             const imgX = opticalElement === 'converging_lens'
                 ? cx + di * scale
                 : cx - di * scale;
@@ -120,42 +176,45 @@
             const focalRightX = cx + fAbs * scale;
 
             return (
-                <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+                <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 space-y-5">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                            <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-100 text-sky-700 mb-1">
+                                Laboratorio Interactivo
+                            </span>
+                            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                                 <span>🔦</span> Simulador de Óptica Geométrica
                             </h3>
-                            <p className="text-xs text-slate-400">Ajusta el elemento óptico, la posición del objeto y el radio de curvatura para observar el trazado de rayos.</p>
+                            <p className="text-xs text-slate-500">Mueve los deslizadores para observar el trazado de rayos, el foco y la imagen real o virtual.</p>
                         </div>
 
                         <div className="flex flex-wrap gap-2">
                             <button
                                 onClick={() => setOpticalElement('concave_mirror')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
+                                className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition ${
                                     opticalElement === 'concave_mirror'
-                                        ? 'bg-cyan-600 border-cyan-500 text-white'
-                                        : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                                        ? 'bg-sky-600 border-sky-600 text-white shadow-sm'
+                                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                                 }`}
                             >
                                 Espejo Cóncavo ( ) )
                             </button>
                             <button
                                 onClick={() => setOpticalElement('convex_mirror')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
+                                className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition ${
                                     opticalElement === 'convex_mirror'
-                                        ? 'bg-cyan-600 border-cyan-500 text-white'
-                                        : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                                        ? 'bg-sky-600 border-sky-600 text-white shadow-sm'
+                                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                                 }`}
                             >
                                 Espejo Convexo ( ( )
                             </button>
                             <button
                                 onClick={() => setOpticalElement('converging_lens')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
+                                className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition ${
                                     opticalElement === 'converging_lens'
-                                        ? 'bg-cyan-600 border-cyan-500 text-white'
-                                        : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                                        ? 'bg-sky-600 border-sky-600 text-white shadow-sm'
+                                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                                 }`}
                             >
                                 Lente Convergente ( () )
@@ -163,27 +222,26 @@
                         </div>
                     </div>
 
-                    {/* Lienzo SVG tipo PhET */}
-                    <div className="w-full overflow-x-auto bg-slate-950 border border-slate-800 rounded-xl">
+                    {/* Lienzo SVG estilo PhET en fondo claro */}
+                    <div className="w-full overflow-x-auto bg-white border-2 border-slate-200 rounded-2xl shadow-inner">
                         <svg viewBox="0 0 760 360" className="w-full min-w-[640px] h-80 select-none">
-                            {/* Cuadrícula sutil */}
                             <defs>
-                                <pattern id="optGrid" width="30" height="30" patternUnits="userSpaceOnUse">
-                                    <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#1e293b" strokeWidth="0.8" />
+                                <pattern id="optGridLight" width="30" height="30" patternUnits="userSpaceOnUse">
+                                    <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#f1f5f9" strokeWidth="1" />
                                 </pattern>
                             </defs>
-                            <rect width="760" height="360" fill="url(#optGrid)" />
+                            <rect width="760" height="360" fill="url(#optGridLight)" />
 
                             {/* Eje óptico */}
-                            <line x1="10" y1={cy} x2="750" y2={cy} stroke="#64748b" strokeWidth="1.5" strokeDasharray="6 4" />
+                            <line x1="10" y1={cy} x2="750" y2={cy} stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="6 4" />
 
                             {/* Elemento óptico central */}
                             {opticalElement === 'concave_mirror' && (
                                 <path
                                     d={`M ${cx - 12} ${cy - 110} Q ${cx + 18} ${cy} ${cx - 12} ${cy + 110}`}
                                     fill="none"
-                                    stroke="#38bdf8"
-                                    strokeWidth="5"
+                                    stroke="#2563eb"
+                                    strokeWidth="6"
                                     strokeLinecap="round"
                                 />
                             )}
@@ -191,16 +249,16 @@
                                 <path
                                     d={`M ${cx + 12} ${cy - 110} Q ${cx - 18} ${cy} ${cx + 12} ${cy + 110}`}
                                     fill="none"
-                                    stroke="#38bdf8"
-                                    strokeWidth="5"
+                                    stroke="#2563eb"
+                                    strokeWidth="6"
                                     strokeLinecap="round"
                                 />
                             )}
                             {opticalElement === 'converging_lens' && (
                                 <path
                                     d={`M ${cx} ${cy - 115} Q ${cx + 24} ${cy} ${cx} ${cy + 115} Q ${cx - 24} ${cy} ${cx} ${cy - 115}`}
-                                    fill="rgba(56, 189, 248, 0.2)"
-                                    stroke="#38bdf8"
+                                    fill="rgba(56, 189, 248, 0.25)"
+                                    stroke="#0284c7"
                                     strokeWidth="3"
                                 />
                             )}
@@ -209,97 +267,98 @@
                             {showFocal && (
                                 <>
                                     <g transform={`translate(${focalLeftX}, ${cy})`}>
-                                        <circle r="5" fill="#facc15" stroke="#0f172a" strokeWidth="1.5" />
-                                        <text y="18" textAnchor="middle" fill="#facc15" fontSize="11" fontWeight="bold">F</text>
+                                        <circle r="5.5" fill="#facc15" stroke="#1e293b" strokeWidth="1.5" />
+                                        <text y="19" textAnchor="middle" fill="#b45309" fontSize="11" fontWeight="bold">F</text>
                                     </g>
                                     <g transform={`translate(${focalRightX}, ${cy})`}>
-                                        <circle r="5" fill="#facc15" stroke="#0f172a" strokeWidth="1.5" />
-                                        <text y="18" textAnchor="middle" fill="#facc15" fontSize="11" fontWeight="bold">F'</text>
+                                        <circle r="5.5" fill="#facc15" stroke="#1e293b" strokeWidth="1.5" />
+                                        <text y="19" textAnchor="middle" fill="#b45309" fontSize="11" fontWeight="bold">F'</text>
                                     </g>
                                 </>
                             )}
 
                             {/* Trazado de rayos */}
                             {!isAtFocus && (
-                                <g strokeWidth="1.8" fill="none">
-                                    {/* Rayo 1: Paralelo al eje -> pasa por el foco */}
-                                    <line x1={objX} y1={objTopY} x2={cx} y2={objTopY} stroke="#f87171" />
+                                <g strokeWidth="2" fill="none">
+                                    {/* Rayo 1: Paralelo al eje */}
+                                    <line x1={objX} y1={objTopY} x2={cx} y2={objTopY} stroke="#ef4444" />
                                     {opticalElement === 'concave_mirror' && (
                                         <>
-                                            <line x1={cx} y1={objTopY} x2={Math.min(imgX, 20)} y2={objTopY + ((cy - objTopY) / (focalLeftX - cx)) * (Math.min(imgX, 20) - cx)} stroke="#f87171" />
+                                            <line x1={cx} y1={objTopY} x2={Math.min(imgX, 20)} y2={objTopY + ((cy - objTopY) / (focalLeftX - cx)) * (Math.min(imgX, 20) - cx)} stroke="#ef4444" />
                                             {isVirtual && showVirtual && (
-                                                <line x1={cx} y1={objTopY} x2={imgX} y2={imgTopY} stroke="#f87171" strokeDasharray="5 4" opacity="0.7" />
+                                                <line x1={cx} y1={objTopY} x2={imgX} y2={imgTopY} stroke="#ef4444" strokeDasharray="5 4" opacity="0.6" />
                                             )}
                                         </>
                                     )}
                                     {opticalElement === 'convex_mirror' && (
                                         <>
-                                            <line x1={cx} y1={objTopY} x2={20} y2={objTopY + ((objTopY - cy) / (cx - focalRightX)) * (20 - cx)} stroke="#f87171" />
+                                            <line x1={cx} y1={objTopY} x2={20} y2={objTopY + ((objTopY - cy) / (cx - focalRightX)) * (20 - cx)} stroke="#ef4444" />
                                             {showVirtual && (
-                                                <line x1={cx} y1={objTopY} x2={imgX} y2={imgTopY} stroke="#f87171" strokeDasharray="5 4" opacity="0.7" />
+                                                <line x1={cx} y1={objTopY} x2={imgX} y2={imgTopY} stroke="#ef4444" strokeDasharray="5 4" opacity="0.6" />
                                             )}
                                         </>
                                     )}
                                     {opticalElement === 'converging_lens' && (
                                         <>
-                                            <line x1={cx} y1={objTopY} x2={Math.max(imgX, 740)} y2={objTopY + ((cy - objTopY) / (focalRightX - cx)) * (Math.max(imgX, 740) - cx)} stroke="#f87171" />
+                                            <line x1={cx} y1={objTopY} x2={Math.max(imgX, 740)} y2={objTopY + ((cy - objTopY) / (focalRightX - cx)) * (Math.max(imgX, 740) - cx)} stroke="#ef4444" />
                                             {isVirtual && showVirtual && (
-                                                <line x1={cx} y1={objTopY} x2={imgX} y2={imgTopY} stroke="#f87171" strokeDasharray="5 4" opacity="0.7" />
+                                                <line x1={cx} y1={objTopY} x2={imgX} y2={imgTopY} stroke="#ef4444" strokeDasharray="5 4" opacity="0.6" />
                                             )}
                                         </>
                                     )}
 
-                                    {/* Rayo 2: Al vértice / centro óptico */}
-                                    <line x1={objX} y1={objTopY} x2={cx} y2={cy} stroke="#34d399" />
+                                    {/* Rayo 2: Al centro óptico */}
+                                    <line x1={objX} y1={objTopY} x2={cx} y2={cy} stroke="#10b981" />
                                     {opticalElement === 'converging_lens' ? (
                                         <>
-                                            <line x1={cx} y1={cy} x2={Math.max(imgX, 740)} y2={cy + ((cy - objTopY) / (cx - objX)) * (Math.max(imgX, 740) - cx)} stroke="#34d399" />
+                                            <line x1={cx} y1={cy} x2={Math.max(imgX, 740)} y2={cy + ((cy - objTopY) / (cx - objX)) * (Math.max(imgX, 740) - cx)} stroke="#10b981" />
                                             {isVirtual && showVirtual && (
-                                                <line x1={cx} y1={cy} x2={imgX} y2={imgTopY} stroke="#34d399" strokeDasharray="5 4" opacity="0.7" />
+                                                <line x1={cx} y1={cy} x2={imgX} y2={imgTopY} stroke="#10b981" strokeDasharray="5 4" opacity="0.6" />
                                             )}
                                         </>
                                     ) : (
                                         <>
-                                            <line x1={cx} y1={cy} x2={20} y2={cy + ((cy - objTopY) / (cx - objX)) * (cx - 20)} stroke="#34d399" />
+                                            <line x1={cx} y1={cy} x2={20} y2={cy + ((cy - objTopY) / (cx - objX)) * (cx - 20)} stroke="#10b981" />
                                             {isVirtual && showVirtual && (
-                                                <line x1={cx} y1={cy} x2={imgX} y2={imgTopY} stroke="#34d399" strokeDasharray="5 4" opacity="0.7" />
+                                                <line x1={cx} y1={cy} x2={imgX} y2={imgTopY} stroke="#10b981" strokeDasharray="5 4" opacity="0.6" />
                                             )}
                                         </>
                                     )}
 
-                                    {/* Rayo 3 marginal adicional */}
+                                    {/* Rayo 3 marginal */}
                                     {rayMode === 'marginales' && (
                                         <>
-                                            <line x1={objX} y1={objTopY} x2={cx} y2={cy - 85} stroke="#fbbf24" opacity="0.85" />
-                                            <line x1={cx} y1={cy - 85} x2={imgX} y2={imgTopY} stroke="#fbbf24" strokeDasharray={isVirtual ? "4 4" : "none"} opacity="0.85" />
+                                            <line x1={objX} y1={objTopY} x2={cx} y2={cy - 85} stroke="#f59e0b" />
+                                            <line x1={cx} y1={cy - 85} x2={imgX} y2={imgTopY} stroke="#f59e0b" strokeDasharray={isVirtual ? "4 4" : "none"} />
                                         </>
                                     )}
                                 </g>
                             )}
 
-                            {/* Objeto (Lápiz estilizado) */}
+                            {/* Objeto (Lápiz) */}
                             <g>
-                                <line x1={objX} y1={cy} x2={objX} y2={objTopY} stroke="#fbbf24" strokeWidth="6" strokeLinecap="round" />
-                                <polygon points={`${objX - 5},${objTopY + 8} ${objX + 5},${objTopY + 8} ${objX},${objTopY - 4}`} fill="#fde047" />
-                                <rect x={objX - 3} y={cy - 7} width="6" height="7" fill="#f472b6" rx="1" />
-                                <text x={objX} y={cy + 18} textAnchor="middle" fill="#fbbf24" fontSize="11" fontWeight="bold">Objeto</text>
+                                <rect x={objX - 14} y={objTopY - 8} width="28" height={cy - objTopY + 12} fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.5" rx="4" />
+                                <line x1={objX} y1={cy} x2={objX} y2={objTopY} stroke="#f59e0b" strokeWidth="7" strokeLinecap="round" />
+                                <polygon points={`${objX - 5},${objTopY + 8} ${objX + 5},${objTopY + 8} ${objX},${objTopY - 5}`} fill="#334155" />
+                                <rect x={objX - 3.5} y={cy - 7} width="7" height="7" fill="#f43f5e" rx="1" />
+                                <text x={objX} y={cy + 22} textAnchor="middle" fill="#b45309" fontSize="11" fontWeight="bold">Objeto</text>
                             </g>
 
                             {/* Imagen formada */}
                             {!isAtFocus && imgX > 15 && imgX < 745 && (showVirtual || !isVirtual) && (
-                                <g opacity={isVirtual ? 0.65 : 0.95}>
+                                <g opacity={isVirtual ? 0.6 : 0.95}>
                                     <line
                                         x1={imgX}
                                         y1={cy}
                                         x2={imgX}
                                         y2={imgTopY}
-                                        stroke={isVirtual ? '#a78bfa' : '#38bdf8'}
-                                        strokeWidth="5"
+                                        stroke={isVirtual ? '#7c3aed' : '#0284c7'}
+                                        strokeWidth="6"
                                         strokeDasharray={isVirtual ? '5 3' : 'none'}
                                         strokeLinecap="round"
                                     />
-                                    <circle cx={imgX} cy={imgTopY} r="4" fill={isVirtual ? '#a78bfa' : '#38bdf8'} />
-                                    <text x={imgX} y={isInverted ? imgTopY + 16 : imgTopY - 10} textAnchor="middle" fill={isVirtual ? '#c4b5fd' : '#7dd3fc'} fontSize="11" fontWeight="bold">
+                                    <circle cx={imgX} cy={imgTopY} r="4.5" fill={isVirtual ? '#7c3aed' : '#0284c7'} />
+                                    <text x={imgX} y={isInverted ? imgTopY + 18 : imgTopY - 10} textAnchor="middle" fill={isVirtual ? '#6d28d9' : '#0369a1'} fontSize="11" fontWeight="bold">
                                         Imagen ({isVirtual ? 'Virtual' : 'Real'})
                                     </text>
                                 </g>
@@ -307,12 +366,12 @@
                         </svg>
                     </div>
 
-                    {/* Panel de controles estilo PhET */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    {/* Panel de controles */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
                         <div>
                             <div className="flex justify-between text-xs mb-1">
-                                <span className="text-slate-400">Distancia Objeto (do)</span>
-                                <span className="text-cyan-400 font-mono font-bold">{objectDist} cm</span>
+                                <span className="text-slate-600 font-medium">Distancia Objeto (do)</span>
+                                <span className="text-sky-700 font-mono font-bold">{objectDist} cm</span>
                             </div>
                             <input
                                 type="range"
@@ -320,14 +379,14 @@
                                 max="260"
                                 value={objectDist}
                                 onChange={(e) => setObjectDist(Number(e.target.value))}
-                                className="w-full accent-cyan-500"
+                                className="w-full accent-sky-600"
                             />
                         </div>
 
                         <div>
                             <div className="flex justify-between text-xs mb-1">
-                                <span className="text-slate-400">Radio de Curvatura (R)</span>
-                                <span className="text-cyan-400 font-mono font-bold">{radius} cm (f = {fSigned} cm)</span>
+                                <span className="text-slate-600 font-medium">Radio de Curvatura (R)</span>
+                                <span className="text-sky-700 font-mono font-bold">{radius} cm (f = {fSigned} cm)</span>
                             </div>
                             <input
                                 type="range"
@@ -336,23 +395,23 @@
                                 step="10"
                                 value={radius}
                                 onChange={(e) => setRadius(Number(e.target.value))}
-                                className="w-full accent-cyan-500"
+                                className="w-full accent-sky-600"
                             />
                         </div>
 
                         <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                            <label className="flex items-center gap-1.5 text-slate-300 cursor-pointer">
-                                <input type="checkbox" checked={showFocal} onChange={(e) => setShowFocal(e.target.checked)} className="accent-cyan-500" />
+                            <label className="flex items-center gap-1.5 text-slate-700 font-medium cursor-pointer">
+                                <input type="checkbox" checked={showFocal} onChange={(e) => setShowFocal(e.target.checked)} className="accent-sky-600" />
                                 Puntos Focales
                             </label>
-                            <label className="flex items-center gap-1.5 text-slate-300 cursor-pointer">
-                                <input type="checkbox" checked={showVirtual} onChange={(e) => setShowVirtual(e.target.checked)} className="accent-cyan-500" />
+                            <label className="flex items-center gap-1.5 text-slate-700 font-medium cursor-pointer">
+                                <input type="checkbox" checked={showVirtual} onChange={(e) => setShowVirtual(e.target.checked)} className="accent-sky-600" />
                                 Imagen Virtual
                             </label>
                             <select
                                 value={rayMode}
                                 onChange={(e) => setRayMode(e.target.value)}
-                                className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-slate-200"
+                                className="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-700 font-medium"
                             >
                                 <option value="principales">Rayos Principales</option>
                                 <option value="marginales">Rayos Marginales</option>
@@ -360,24 +419,24 @@
                         </div>
                     </div>
 
-                    {/* Resultados en vivo + botón al Tutor IA */}
-                    <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-950/70 p-4 rounded-xl border border-slate-800/80">
+                    {/* Resultados + Tutor IA */}
+                    <div className="flex flex-wrap items-center justify-between gap-4 bg-sky-50/70 p-4 rounded-xl border border-sky-100">
                         <div className="flex flex-wrap gap-6 text-xs">
                             <div>
-                                <span className="text-slate-400 block">Distancia Imagen (di)</span>
-                                <span className="text-base font-mono font-bold text-white">
+                                <span className="text-slate-500 block">Distancia Imagen (di)</span>
+                                <span className="text-base font-mono font-bold text-slate-900">
                                     {isAtFocus ? '∞ (En el foco)' : `${di.toFixed(1)} cm`}
                                 </span>
                             </div>
                             <div>
-                                <span className="text-slate-400 block">Aumento (M)</span>
-                                <span className="text-base font-mono font-bold text-cyan-400">
+                                <span className="text-slate-500 block">Aumento (M)</span>
+                                <span className="text-base font-mono font-bold text-sky-700">
                                     {isAtFocus ? 'Indefinido' : `${magnification.toFixed(2)}×`}
                                 </span>
                             </div>
                             <div>
-                                <span className="text-slate-400 block">Naturaleza de Imagen</span>
-                                <span className="text-sm font-semibold text-emerald-400">
+                                <span className="text-slate-500 block">Tipo de Imagen</span>
+                                <span className="text-sm font-bold text-emerald-700">
                                     {isAtFocus
                                         ? 'Sin formación de imagen'
                                         : `${isVirtual ? 'Virtual' : 'Real'} y ${isInverted ? 'Invertida' : 'Derecha'}`}
@@ -396,7 +455,7 @@
                                     `Explica por qué la imagen resulta ${isVirtual ? 'virtual' : 'real'} y ${isInverted ? 'invertida' : 'derecha'}.`
                                 )
                             }
-                            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-xl transition"
+                            className="px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold rounded-xl transition shadow-sm"
                         >
                             🤖 Explicar con Tutor IA
                         </button>
@@ -406,66 +465,60 @@
         }
 
         /* =========================================================
-           SIMULADOR 2: TERMODINÁMICA (PISTÓN Y PRIMERA LEY)
+           SIMULADOR 2: TERMODINÁMICA (FONDO BLANCO)
            ========================================================= */
         function ThermoSimulator({ onSendToTutor }) {
-            const [heatQ, setHeatQ] = useState(500); // Joules
-            const [workW, setWorkW] = useState(200); // Joules
+            const [heatQ, setHeatQ] = useState(500);
+            const [workW, setWorkW] = useState(200);
             const deltaU = heatQ - workW;
 
-            // Altura visual del pistón según el trabajo realizado (expansión/compresión)
             const pistonOffset = Math.max(-35, Math.min(45, workW / 12));
-            const tempColor = deltaU > 200 ? '#ef4444' : deltaU > 0 ? '#f97316' : deltaU === 0 ? '#eab308' : '#38bdf8';
+            const tempColor = deltaU > 200 ? '#ef4444' : deltaU > 0 ? '#f97316' : deltaU === 0 ? '#eab308' : '#0284c7';
 
             return (
-                <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+                <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 space-y-5">
                     <div>
-                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 mb-1">
+                            Laboratorio Térmico
+                        </span>
+                        <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                             <span>🔥</span> Simulador de Termodinámica (Primera Ley: ΔU = Q - W)
                         </h3>
-                        <p className="text-xs text-slate-400">Modifica el calor transferido (Q) y el trabajo realizado por el sistema (W) para ver la variación de energía interna.</p>
+                        <p className="text-xs text-slate-500">Modifica el calor transferido (Q) y el trabajo realizado (W) para ver la variación de energía interna y expansión del pistón.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                        {/* Cilindro y pistón SVG */}
-                        <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex justify-center">
+                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex justify-center">
                             <svg viewBox="0 0 320 220" className="w-full max-w-xs h-48">
-                                {/* Gas interior */}
                                 <rect
                                     x="95"
                                     y={80 - pistonOffset}
                                     width="130"
                                     height={110 + pistonOffset}
                                     fill={tempColor}
-                                    opacity="0.22"
+                                    opacity="0.25"
                                 />
-                                {/* Partículas animadas */}
-                                <circle cx="125" cy={145 - pistonOffset / 2} r="4" fill={tempColor} />
-                                <circle cx="160" cy={130 - pistonOffset / 2} r="4" fill={tempColor} />
-                                <circle cx="195" cy={155 - pistonOffset / 2} r="4" fill={tempColor} />
-                                <circle cx="145" cy={168 - pistonOffset / 2} r="4" fill={tempColor} />
-                                <circle cx="180" cy={125 - pistonOffset / 2} r="4" fill={tempColor} />
+                                <circle cx="125" cy={145 - pistonOffset / 2} r="4.5" fill={tempColor} />
+                                <circle cx="160" cy={130 - pistonOffset / 2} r="4.5" fill={tempColor} />
+                                <circle cx="195" cy={155 - pistonOffset / 2} r="4.5" fill={tempColor} />
+                                <circle cx="145" cy={168 - pistonOffset / 2} r="4.5" fill={tempColor} />
+                                <circle cx="180" cy={125 - pistonOffset / 2} r="4.5" fill={tempColor} />
 
-                                {/* Paredes del cilindro */}
-                                <polyline points="95,35 95,190 225,190 225,35" fill="none" stroke="#94a3b8" strokeWidth="4" />
-
-                                {/* Pistón móvil */}
-                                <rect x="97" y={68 - pistonOffset} width="126" height="12" fill="#cbd5e1" rx="2" />
+                                <polyline points="95,35 95,190 225,190 225,35" fill="none" stroke="#475569" strokeWidth="4" />
+                                <rect x="97" y={68 - pistonOffset} width="126" height="12" fill="#334155" rx="2" />
                                 <rect x="154" y={20 - pistonOffset} width="12" height="48" fill="#64748b" />
 
-                                {/* Flecha de Calor Q */}
-                                <text x="160" y="210" textAnchor="middle" fill="#fb923c" fontSize="11" fontWeight="bold">
+                                <text x="160" y="210" textAnchor="middle" fill="#c2410c" fontSize="11" fontWeight="bold">
                                     {heatQ >= 0 ? `▲ Entra Calor Q = +${heatQ} J` : `▼ Sale Calor Q = ${heatQ} J`}
                                 </text>
                             </svg>
                         </div>
 
-                        {/* Controles */}
-                        <div className="space-y-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <div className="space-y-4 bg-slate-50 p-5 rounded-2xl border border-slate-200">
                             <div>
                                 <div className="flex justify-between text-xs mb-1">
-                                    <span className="text-slate-400">Calor Netamente Absorvido (Q)</span>
-                                    <span className="text-orange-400 font-mono font-bold">{heatQ} J</span>
+                                    <span className="text-slate-600 font-medium">Calor Absorbido / Cedido (Q)</span>
+                                    <span className="text-orange-600 font-mono font-bold">{heatQ} J</span>
                                 </div>
                                 <input
                                     type="range"
@@ -480,8 +533,8 @@
 
                             <div>
                                 <div className="flex justify-between text-xs mb-1">
-                                    <span className="text-slate-400">Trabajo Realizado por el Gas (W)</span>
-                                    <span className="text-cyan-400 font-mono font-bold">{workW} J</span>
+                                    <span className="text-slate-600 font-medium">Trabajo Realizado por el Gas (W)</span>
+                                    <span className="text-sky-700 font-mono font-bold">{workW} J</span>
                                 </div>
                                 <input
                                     type="range"
@@ -490,14 +543,14 @@
                                     step="25"
                                     value={workW}
                                     onChange={(e) => setWorkW(Number(e.target.value))}
-                                    className="w-full accent-cyan-500"
+                                    className="w-full accent-sky-600"
                                 />
                             </div>
 
-                            <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                            <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
                                 <div>
-                                    <span className="text-xs text-slate-400 block">Energía Interna (ΔU = Q - W)</span>
-                                    <span className="text-lg font-mono font-bold text-white">{deltaU} J</span>
+                                    <span className="text-xs text-slate-500 block">Energía Interna (ΔU = Q - W)</span>
+                                    <span className="text-lg font-mono font-bold text-slate-900">{deltaU} J</span>
                                 </div>
                                 <button
                                     onClick={() =>
@@ -509,7 +562,7 @@
                                             `Indica si la temperatura del gas aumenta o disminuye y si el gas se expande o comprime.`
                                         )
                                     }
-                                    className="px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-xl transition"
+                                    className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-xl transition shadow-sm"
                                 >
                                     🤖 Analizar con IA
                                 </button>
@@ -521,33 +574,32 @@
         }
 
         /* =========================================================
-           SIMULADOR 3: ELECTROMAGNETISMO (CIRCUITO LEY DE OHM)
+           SIMULADOR 3: ELECTROMAGNETISMO (FONDO BLANCO)
            ========================================================= */
         function ElectroSimulator({ onSendToTutor }) {
-            const [voltage, setVoltage] = useState(12); // V
-            const [resistance, setResistance] = useState(6); // Ohm
-            const current = voltage / resistance; // A
-            const power = voltage * current; // W
+            const [voltage, setVoltage] = useState(12);
+            const [resistance, setResistance] = useState(6);
+            const current = voltage / resistance;
+            const power = voltage * current;
 
-            // Velocidad animación de electrones
             const animDuration = Math.max(0.25, Math.min(4, 2 / Math.max(0.1, current)));
 
             return (
-                <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+                <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 space-y-5">
                     <div>
-                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 mb-1">
+                            Laboratorio Eléctrico
+                        </span>
+                        <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                             <span>⚡</span> Simulador de Circuito Eléctrico (Ley de Ohm: V = I · R)
                         </h3>
-                        <p className="text-xs text-slate-400">Ajusta el voltaje de la fuente y la resistencia para observar el flujo de corriente e intensidad.</p>
+                        <p className="text-xs text-slate-500">Ajusta el voltaje de la fuente y la resistencia para observar el flujo de corriente e intensidad.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                        {/* Circuito animado SVG */}
-                        <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex justify-center">
+                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex justify-center">
                             <svg viewBox="0 0 340 210" className="w-full max-w-xs h-48">
-                                {/* Cable base */}
-                                <rect x="55" y="35" width="230" height="140" rx="14" fill="none" stroke="#334155" strokeWidth="6" />
-                                {/* Flujo de corriente animado */}
+                                <rect x="55" y="35" width="230" height="140" rx="14" fill="none" stroke="#cbd5e1" strokeWidth="7" />
                                 <rect
                                     x="55"
                                     y="35"
@@ -555,37 +607,33 @@
                                     height="140"
                                     rx="14"
                                     fill="none"
-                                    stroke="#38bdf8"
+                                    stroke="#0284c7"
                                     strokeWidth="4"
                                     strokeDasharray="8 10"
                                     className="animate-current"
                                     style={{ animationDuration: `${animDuration}s` }}
                                 />
 
-                                {/* Fuente de Voltaje (izquierda) */}
-                                <rect x="32" y="78" width="46" height="54" rx="8" fill="#0f172a" stroke="#facc15" strokeWidth="2" />
-                                <text x="55" y="102" textAnchor="middle" fill="#facc15" fontSize="11" fontWeight="bold">{voltage} V</text>
-                                <text x="55" y="118" textAnchor="middle" fill="#94a3b8" fontSize="9">Fuente</text>
+                                <rect x="30" y="78" width="50" height="54" rx="10" fill="#ffffff" stroke="#eab308" strokeWidth="2.5" />
+                                <text x="55" y="102" textAnchor="middle" fill="#b45309" fontSize="11" fontWeight="bold">{voltage} V</text>
+                                <text x="55" y="118" textAnchor="middle" fill="#64748b" fontSize="9">Fuente</text>
 
-                                {/* Resistencia (derecha) */}
-                                <rect x="260" y="75" width="50" height="60" rx="8" fill="#0f172a" stroke="#f87171" strokeWidth="2" />
-                                <text x="285" y="102" textAnchor="middle" fill="#f87171" fontSize="11" fontWeight="bold">{resistance} Ω</text>
-                                <text x="285" y="118" textAnchor="middle" fill="#94a3b8" fontSize="9">Carga R</text>
+                                <rect x="260" y="75" width="50" height="60" rx="10" fill="#ffffff" stroke="#ef4444" strokeWidth="2.5" />
+                                <text x="285" y="102" textAnchor="middle" fill="#dc2626" fontSize="11" fontWeight="bold">{resistance} Ω</text>
+                                <text x="285" y="118" textAnchor="middle" fill="#64748b" fontSize="9">Carga R</text>
 
-                                {/* Amperímetro arriba */}
-                                <rect x="125" y="20" width="90" height="28" rx="14" fill="#0f172a" stroke="#34d399" strokeWidth="2" />
-                                <text x="170" y="38" textAnchor="middle" fill="#34d399" fontSize="11" fontWeight="bold">
+                                <rect x="122" y="20" width="96" height="28" rx="14" fill="#ffffff" stroke="#10b981" strokeWidth="2.5" />
+                                <text x="170" y="38" textAnchor="middle" fill="#047857" fontSize="11" fontWeight="bold">
                                     I = {current.toFixed(2)} A
                                 </text>
                             </svg>
                         </div>
 
-                        {/* Controles */}
-                        <div className="space-y-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <div className="space-y-4 bg-slate-50 p-5 rounded-2xl border border-slate-200">
                             <div>
                                 <div className="flex justify-between text-xs mb-1">
-                                    <span className="text-slate-400">Voltaje de Fuente (V)</span>
-                                    <span className="text-yellow-400 font-mono font-bold">{voltage} V</span>
+                                    <span className="text-slate-600 font-medium">Voltaje de Fuente (V)</span>
+                                    <span className="text-amber-700 font-mono font-bold">{voltage} V</span>
                                 </div>
                                 <input
                                     type="range"
@@ -594,14 +642,14 @@
                                     step="1"
                                     value={voltage}
                                     onChange={(e) => setVoltage(Number(e.target.value))}
-                                    className="w-full accent-yellow-400"
+                                    className="w-full accent-amber-500"
                                 />
                             </div>
 
                             <div>
                                 <div className="flex justify-between text-xs mb-1">
-                                    <span className="text-slate-400">Resistencia Eléctrica (R)</span>
-                                    <span className="text-red-400 font-mono font-bold">{resistance} Ω</span>
+                                    <span className="text-slate-600 font-medium">Resistencia Eléctrica (R)</span>
+                                    <span className="text-red-600 font-mono font-bold">{resistance} Ω</span>
                                 </div>
                                 <input
                                     type="range"
@@ -614,15 +662,15 @@
                                 />
                             </div>
 
-                            <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-2">
-                                <div className="flex gap-4">
+                            <div className="pt-3 border-t border-slate-200 flex items-center justify-between gap-2">
+                                <div className="flex gap-5">
                                     <div>
-                                        <span className="text-xs text-slate-400 block">Corriente (I)</span>
-                                        <span className="text-base font-mono font-bold text-emerald-400">{current.toFixed(2)} A</span>
+                                        <span className="text-xs text-slate-500 block">Corriente (I)</span>
+                                        <span className="text-base font-mono font-bold text-emerald-700">{current.toFixed(2)} A</span>
                                     </div>
                                     <div>
-                                        <span className="text-xs text-slate-400 block">Potencia (P)</span>
-                                        <span className="text-base font-mono font-bold text-cyan-400">{power.toFixed(2)} W</span>
+                                        <span className="text-xs text-slate-500 block">Potencia (P)</span>
+                                        <span className="text-base font-mono font-bold text-sky-700">{power.toFixed(2)} W</span>
                                     </div>
                                 </div>
 
@@ -636,7 +684,7 @@
                                             `- Potencia disipada P = ${power.toFixed(2)} W`
                                         )
                                     }
-                                    className="px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-xl transition"
+                                    className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold rounded-xl transition shadow-sm"
                                 >
                                     🤖 Analizar con IA
                                 </button>
@@ -648,7 +696,7 @@
         }
 
         /* =========================================================
-           APLICACIÓN PRINCIPAL
+           APLICACIÓN PRINCIPAL (ESTILO LUMINOSO Y VIVO)
            ========================================================= */
         function App() {
             const [activeTab, setActiveTab] = useState('chat');
@@ -656,7 +704,7 @@
 
             const [chats, setChats] = useState(() => {
                 try {
-                    const saved = localStorage.getItem('fisica_master_chats_v3');
+                    const saved = localStorage.getItem('fisica_master_chats_light_v1');
                     if (saved) {
                         const parsed = JSON.parse(saved);
                         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -667,7 +715,7 @@
                     title: 'Nueva Sesión de Física',
                     messages: [{
                         role: 'assistant',
-                        content: '¡Hola! Soy Física Master IA, tu tutor especializado exclusivamente en Física (Termodinámica, Electromagnetismo y Óptica). Escribe tu duda, graba un audio, adjunta una foto o prueba los simuladores interactivos.'
+                        content: '¡Hola! Soy Física Master IA, tu tutor interactivo de Física (Termodinámica, Electromagnetismo y Óptica). Escribe tu ejercicio, graba un audio, sube una foto o experimenta con los simuladores visuales.'
                     }]
                 }];
             });
@@ -694,7 +742,7 @@
                             audio: m.audio ? { data: m.audio.data, mimeType: m.audio.mimeType } : null
                         }))
                     }));
-                    localStorage.setItem('fisica_master_chats_v3', JSON.stringify(serializableChats));
+                    localStorage.setItem('fisica_master_chats_light_v1', JSON.stringify(serializableChats));
                 } catch (e) {}
             }, [chats]);
 
@@ -914,7 +962,7 @@
                     title: 'Nueva Sesión de Física',
                     messages: [{
                         role: 'assistant',
-                        content: '¡Nueva sesión iniciada! Recuerda que estoy programado exclusivamente para responder temas de Física. ¿Qué duda, audio o ejercicio analizamos hoy?'
+                        content: '¡Nueva sesión iniciada! Estoy listo para ayudarte con Termodinámica, Electromagnetismo u Óptica. ¿Qué ejercicio o simulación analizamos hoy?'
                     }]
                 };
                 setChats([newChatObj, ...chats]);
@@ -935,32 +983,34 @@
             const activeTopicObj = TOPICS.find(t => t.id === selectedTopic) || TOPICS[0];
 
             return (
-                <div className="flex h-screen overflow-hidden bg-slate-950 text-slate-100">
-                    {/* Barra lateral */}
-                    <aside className="w-72 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0">
-                        <div className="p-4 border-b border-slate-800">
-                            <h1 className="font-bold text-lg text-cyan-400 flex items-center gap-2">
-                                <span className="p-1.5 bg-cyan-500/10 rounded-lg">⚛️</span>
+                <div className="flex h-screen overflow-hidden bg-slate-50 text-slate-800">
+                    {/* Barra lateral blanca y limpia */}
+                    <aside className="w-72 bg-white border-r border-slate-200 flex flex-col shrink-0 shadow-sm z-10">
+                        <div className="p-4 border-b border-slate-100 bg-gradient-to-br from-sky-50 via-white to-indigo-50">
+                            <h1 className="font-extrabold text-lg text-slate-900 flex items-center gap-2.5">
+                                <span className="w-10 h-10 bg-gradient-to-tr from-sky-600 to-indigo-600 text-white rounded-xl flex items-center justify-center text-xl shadow-md shadow-sky-200 animate-float">
+                                    ⚛️
+                                </span>
                                 <div>
-                                    <div>Física Master IA</div>
-                                    <div className="text-xs font-normal text-slate-400">Tutor Científico</div>
+                                    <div className="leading-tight">Física Master IA</div>
+                                    <div className="text-xs font-medium text-sky-600">Laboratorio & Tutor</div>
                                 </div>
                             </h1>
                         </div>
 
-                        <div className="p-3 border-b border-slate-800">
+                        <div className="p-3 border-b border-slate-100">
                             <button
                                 onClick={createNewChat}
-                                className="w-full py-2.5 px-3 bg-cyan-600 hover:bg-cyan-500 text-white font-medium rounded-xl text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/40"
+                                className="w-full py-2.5 px-4 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 text-white font-semibold rounded-xl text-sm transition flex items-center justify-center gap-2 shadow-md shadow-sky-200"
                             >
-                                <span>+</span> Nuevo Chat
+                                <span className="text-base">+</span> Nuevo Chat
                             </button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-3 space-y-1">
-                            <div className="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase px-2 mb-2">
+                        <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
+                            <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
                                 <span>Historial de Chats</span>
-                                <span>{chats.length}</span>
+                                <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{chats.length}</span>
                             </div>
                             {chats.map(chat => (
                                 <div
@@ -971,15 +1021,15 @@
                                     }}
                                     className={`group flex items-center justify-between p-2.5 rounded-xl cursor-pointer text-sm transition ${
                                         chat.id === currentChatId && activeTab === 'chat'
-                                            ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-medium'
-                                            : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
+                                            ? 'bg-sky-50 text-sky-800 border border-sky-200 font-semibold shadow-sm'
+                                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                                     }`}
                                 >
-                                    <span className="truncate pr-2">{chat.title}</span>
+                                    <span className="truncate pr-2">💬 {chat.title}</span>
                                     {chats.length > 1 && (
                                         <button
                                             onClick={(e) => deleteChat(chat.id, e)}
-                                            className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 text-slate-500 transition"
+                                            className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 text-slate-400 transition"
                                             title="Eliminar conversación"
                                         >
                                             🗑️
@@ -990,78 +1040,90 @@
                         </div>
                     </aside>
 
-                    {/* Área principal */}
-                    <main className="flex-1 flex flex-col bg-slate-950 overflow-hidden">
-                        {/* Encabezado y pestañas */}
-                        <header className="p-3.5 border-b border-slate-800 bg-slate-950/90 backdrop-blur flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
+                    {/* Área principal con fondo blanco/claro */}
+                    <main className="flex-1 flex flex-col bg-slate-50/70 overflow-hidden">
+                        {/* Encabezado */}
+                        <header className="p-3.5 border-b border-slate-200 bg-white/95 backdrop-blur flex items-center justify-between gap-4 shadow-2xs">
+                            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200/80">
                                 <button
                                     onClick={() => setActiveTab('chat')}
-                                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${
+                                    className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition ${
                                         activeTab === 'chat'
-                                            ? 'bg-cyan-600 text-white shadow'
-                                            : 'text-slate-400 hover:text-slate-200'
+                                            ? 'bg-white text-sky-700 shadow-sm'
+                                            : 'text-slate-600 hover:text-slate-900'
                                     }`}
                                 >
                                     🤖 Tutor IA de Física
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('formulas')}
-                                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${
+                                    className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition ${
                                         activeTab === 'formulas'
-                                            ? 'bg-cyan-600 text-white shadow'
-                                            : 'text-slate-400 hover:text-slate-200'
+                                            ? 'bg-white text-sky-700 shadow-sm'
+                                            : 'text-slate-600 hover:text-slate-900'
                                     }`}
                                 >
-                                    📐 Fórmulas y Simuladores
+                                    🔬 Fórmulas y Simuladores
                                 </button>
                             </div>
 
-                            <span className="text-xs bg-cyan-950/80 text-cyan-400 px-3 py-1.5 rounded-full border border-cyan-800/50 hidden sm:inline-flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                            <span className="text-xs bg-emerald-50 text-emerald-700 font-semibold px-3 py-1.5 rounded-full border border-emerald-200 hidden sm:inline-flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                                 Modo Estricto: Solo Física
                             </span>
                         </header>
 
                         {activeTab === 'formulas' ? (
                             <div className="flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full space-y-6">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-white mb-1">Laboratorio Interactivo y Fórmulas</h2>
-                                    <p className="text-slate-400 text-sm">Selecciona un área para experimentar con su simulador visual y consultar sus ecuaciones fundamentales.</p>
+                                <div className="bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 rounded-2xl p-6 text-white shadow-md flex flex-wrap items-center justify-between gap-4">
+                                    <div>
+                                        <h2 className="text-2xl font-extrabold mb-1">Laboratorio Interactivo de Física</h2>
+                                        <p className="text-sky-100 text-sm">Explora cada rama con ilustraciones visuales, simuladores en tiempo real y formularios.</p>
+                                    </div>
+                                    <div className="flex gap-2 text-2xl bg-white/15 px-4 py-2.5 rounded-2xl backdrop-blur-xs">
+                                        <span>🔦</span>
+                                        <span>🔥</span>
+                                        <span>⚡</span>
+                                    </div>
                                 </div>
 
-                                {/* Selector de rama de la física */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {/* Tarjetas con ilustraciones visuales */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                                     {TOPICS.map(t => (
                                         <div
                                             key={t.id}
                                             onClick={() => setSelectedTopic(t.id)}
-                                            className={`p-4 rounded-2xl border cursor-pointer transition ${
+                                            className={`p-4 rounded-2xl border cursor-pointer transition-all hover:-translate-y-0.5 ${
                                                 selectedTopic === t.id
-                                                    ? 'bg-cyan-950/35 border-cyan-500 shadow-lg shadow-cyan-950/40'
-                                                    : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
+                                                    ? `${t.accentBorder} shadow-md`
+                                                    : 'bg-white border-slate-200 hover:border-slate-300 shadow-2xs'
                                             }`}
                                         >
-                                            <span className="text-xs text-cyan-400 font-semibold uppercase">{t.category}</span>
-                                            <h3 className="text-base font-bold text-white mt-1 mb-1">{t.name}</h3>
-                                            <p className="text-slate-400 text-xs leading-relaxed">{t.description}</p>
+                                            <div className="mb-3">
+                                                <TopicIllustration id={t.id} />
+                                            </div>
+                                            <span className={`inline-block text-[11px] font-bold uppercase px-2.5 py-0.5 rounded-full border ${t.badgeColor}`}>
+                                                {t.category}
+                                            </span>
+                                            <h3 className="text-base font-bold text-slate-900 mt-2 mb-1">{t.name}</h3>
+                                            <p className="text-slate-500 text-xs leading-relaxed">{t.description}</p>
                                         </div>
                                     ))}
                                 </div>
 
-                                {/* Simulador interactivo correspondiente */}
+                                {/* Simulador interactivo */}
                                 {selectedTopic === 'optica' && <OpticsSimulator onSendToTutor={sendPromptDirectly} />}
                                 {selectedTopic === 'termodinamica' && <ThermoSimulator onSendToTutor={sendPromptDirectly} />}
                                 {selectedTopic === 'electromagnetismo' && <ElectroSimulator onSendToTutor={sendPromptDirectly} />}
 
                                 {/* Tarjetas de fórmulas */}
-                                <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5">
-                                    <h3 className="text-base font-bold text-white mb-3">Fórmulas Clave de {activeTopicObj.name}</h3>
+                                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs">
+                                    <h3 className="text-base font-bold text-slate-900 mb-3">📐 Fórmulas Clave de {activeTopicObj.name}</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         {activeTopicObj.formulas.map((f, i) => (
-                                            <div key={i} className="p-4 bg-slate-950 rounded-xl border border-slate-800/80">
-                                                <div className="text-xs font-medium text-slate-400 mb-1.5">{f.name}</div>
-                                                <div className="text-cyan-400 font-mono text-base font-semibold">{f.eq}</div>
+                                            <div key={i} className="p-4 bg-slate-50 rounded-xl border border-slate-200/80">
+                                                <div className="text-xs font-semibold text-slate-500 mb-1.5">{f.name}</div>
+                                                <div className="text-sky-700 font-mono text-base font-bold">{f.eq}</div>
                                             </div>
                                         ))}
                                     </div>
@@ -1069,8 +1131,34 @@
                             </div>
                         ) : (
                             <>
-                                {/* Mensajes */}
-                                <div className="flex-1 overflow-y-auto p-4 space-y-4 max-w-4xl mx-auto w-full">
+                                {/* Banner visual superior en el chat */}
+                                <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 max-w-4xl mx-auto w-full">
+                                    {currentChat.messages.length <= 1 && (
+                                        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs grid grid-cols-1 sm:grid-cols-3 gap-3 mb-2">
+                                            <div
+                                                onClick={() => { setSelectedTopic('optica'); setActiveTab('formulas'); }}
+                                                className="cursor-pointer group rounded-xl p-2 hover:bg-sky-50 transition border border-transparent hover:border-sky-100"
+                                            >
+                                                <TopicIllustration id="optica" />
+                                                <div className="text-xs font-bold text-slate-800 mt-2 group-hover:text-sky-700">🔦 Simulador de Óptica →</div>
+                                            </div>
+                                            <div
+                                                onClick={() => { setSelectedTopic('termodinamica'); setActiveTab('formulas'); }}
+                                                className="cursor-pointer group rounded-xl p-2 hover:bg-orange-50 transition border border-transparent hover:border-orange-100"
+                                            >
+                                                <TopicIllustration id="termodinamica" />
+                                                <div className="text-xs font-bold text-slate-800 mt-2 group-hover:text-orange-700">🔥 Simulador Térmico →</div>
+                                            </div>
+                                            <div
+                                                onClick={() => { setSelectedTopic('electromagnetismo'); setActiveTab('formulas'); }}
+                                                className="cursor-pointer group rounded-xl p-2 hover:bg-amber-50 transition border border-transparent hover:border-amber-100"
+                                            >
+                                                <TopicIllustration id="electromagnetismo" />
+                                                <div className="text-xs font-bold text-slate-800 mt-2 group-hover:text-amber-700">⚡ Simulador Eléctrico →</div>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {currentChat.messages.map((msg, index) => {
                                         const isUser = msg.role === 'user';
                                         const audioSrc = msg.audio ? base64ToAudioUrl(msg.audio) : null;
@@ -1078,15 +1166,15 @@
                                         return (
                                             <div key={index} className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
                                                 {!isUser && (
-                                                    <div className="w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center text-white font-bold text-xs shrink-0 shadow">
+                                                    <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm">
                                                         IA
                                                     </div>
                                                 )}
                                                 <div
                                                     className={`max-w-[80%] rounded-2xl p-4 text-sm leading-relaxed ${
                                                         isUser
-                                                            ? 'bg-cyan-600 text-white rounded-br-none'
-                                                            : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none shadow-lg'
+                                                            ? 'bg-sky-600 text-white rounded-br-none shadow-sm'
+                                                            : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none shadow-sm'
                                                     }`}
                                                 >
                                                     {msg.image && (
@@ -1094,7 +1182,7 @@
                                                             <img
                                                                 src={msg.image}
                                                                 alt="Ejercicio adjunto"
-                                                                className="max-h-56 rounded-xl object-contain border border-slate-700/70"
+                                                                className="max-h-56 rounded-xl object-contain border border-slate-200 bg-slate-50"
                                                             />
                                                         </div>
                                                     )}
@@ -1108,7 +1196,7 @@
                                                     )}
                                                 </div>
                                                 {isUser && (
-                                                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                                                    <div className="w-9 h-9 rounded-xl bg-slate-200 flex items-center justify-center text-slate-700 font-bold text-xs shrink-0">
                                                         Tú
                                                     </div>
                                                 )}
@@ -1117,11 +1205,11 @@
                                     })}
 
                                     {loadingAI && (
-                                        <div className="flex gap-3 items-center text-slate-400 text-sm">
-                                            <div className="w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center text-white font-bold text-sm animate-spin">
+                                        <div className="flex gap-3 items-center text-slate-600 text-sm">
+                                            <div className="w-9 h-9 rounded-xl bg-sky-600 flex items-center justify-center text-white font-bold text-sm animate-spin">
                                                 ⚛️
                                             </div>
-                                            <div className="bg-slate-900 border border-slate-800 px-4 py-3 rounded-2xl">
+                                            <div className="bg-white border border-slate-200 px-4 py-3 rounded-2xl shadow-2xs">
                                                 Analizando leyes físicas y resolviendo paso a paso...
                                             </div>
                                         </div>
@@ -1129,19 +1217,19 @@
                                     <div ref={chatEndRef} />
                                 </div>
 
-                                {/* Barra de entrada */}
-                                <div className="p-4 bg-slate-900 border-t border-slate-800">
+                                {/* Barra de entrada blanca */}
+                                <div className="p-4 bg-white border-t border-slate-200">
                                     <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex flex-col gap-2.5">
                                         {(selectedImage || selectedAudio || isRecording) && (
                                             <div className="flex flex-wrap items-center gap-3">
                                                 {selectedImage && (
-                                                    <div className="flex items-center gap-2 bg-slate-950 p-2 rounded-xl border border-slate-800">
+                                                    <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200">
                                                         <img src={selectedImage} alt="Preview" className="w-12 h-12 object-cover rounded-lg" />
-                                                        <span className="text-xs text-slate-300">Imagen lista</span>
+                                                        <span className="text-xs font-medium text-slate-700">Imagen lista</span>
                                                         <button
                                                             type="button"
                                                             onClick={removeSelectedImage}
-                                                            className="text-red-400 hover:text-red-300 px-2 font-bold"
+                                                            className="text-red-500 hover:text-red-600 px-2 font-bold"
                                                         >
                                                             ×
                                                         </button>
@@ -1149,12 +1237,12 @@
                                                 )}
 
                                                 {selectedAudio && (
-                                                    <div className="flex items-center gap-2 bg-slate-950 p-2 rounded-xl border border-slate-800">
+                                                    <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200">
                                                         <audio controls src={selectedAudio.url} className="h-8" />
                                                         <button
                                                             type="button"
                                                             onClick={removeSelectedAudio}
-                                                            className="text-red-400 hover:text-red-300 px-2 font-bold"
+                                                            className="text-red-500 hover:text-red-600 px-2 font-bold"
                                                         >
                                                             ×
                                                         </button>
@@ -1162,8 +1250,8 @@
                                                 )}
 
                                                 {isRecording && (
-                                                    <div className="flex items-center gap-2 bg-red-950/60 border border-red-700/60 text-red-300 px-3 py-2 rounded-xl text-xs">
-                                                        <span className="w-2 h-2 rounded-full bg-red-400 animate-ping"></span>
+                                                    <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-xl text-xs font-medium">
+                                                        <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
                                                         Grabando audio... pulsa el botón rojo para detener.
                                                     </div>
                                                 )}
@@ -1181,7 +1269,7 @@
                                             <button
                                                 type="button"
                                                 onClick={() => fileInputRef.current?.click()}
-                                                className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition flex items-center justify-center"
+                                                className="p-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition flex items-center justify-center border border-slate-200"
                                                 title="Adjuntar imagen de problema o circuito"
                                             >
                                                 🖼️
@@ -1190,10 +1278,10 @@
                                             <button
                                                 type="button"
                                                 onClick={isRecording ? stopRecording : startRecording}
-                                                className={`p-3 rounded-xl transition flex items-center justify-center ${
+                                                className={`p-3 rounded-xl transition flex items-center justify-center border ${
                                                     isRecording
-                                                        ? 'bg-red-600 hover:bg-red-500 text-white animate-pulse'
-                                                        : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                                                        ? 'bg-red-600 border-red-600 hover:bg-red-700 text-white animate-pulse'
+                                                        : 'bg-slate-100 border-slate-200 hover:bg-slate-200 text-slate-700'
                                                 }`}
                                                 title={isRecording ? 'Detener grabación' : 'Grabar audio de física'}
                                             >
@@ -1205,13 +1293,13 @@
                                                 value={inputMessage}
                                                 onChange={(e) => setInputMessage(e.target.value)}
                                                 placeholder="Escribe tu duda de Termodinámica, Electromagnetismo u Óptica..."
-                                                className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 text-sm"
+                                                className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:bg-white text-sm"
                                             />
 
                                             <button
                                                 type="submit"
                                                 disabled={loadingAI || (!inputMessage.trim() && !selectedImage && !selectedAudio)}
-                                                className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-medium px-5 py-3 rounded-xl transition text-sm shadow-lg shadow-cyan-950/40"
+                                                className="bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white font-semibold px-5 py-3 rounded-xl transition text-sm shadow-sm"
                                             >
                                                 Enviar
                                             </button>
