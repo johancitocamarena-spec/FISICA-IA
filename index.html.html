@@ -1,162 +1,75 @@
 <!DOCTYPE html>
-<html lang="es" class="dark">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Física Master IA - Tutor y Simuladores</title>
-    <!-- Tailwind CSS -->
+    <title>Física Master IA - Termodinámica, Electromagnetismo y Óptica</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- Google Fonts: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- React 18 & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- KaTeX for Math Formulas -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body {
-            background-color: #060913;
-            color: #f1f5f9;
-        }
-        /* Scrollbars personalizados */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #1e293b;
-            border-radius: 9999px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #334155;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body class="h-screen overflow-hidden flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200">
-    <div id="root" class="h-full w-full flex"></div>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+    <div id="root"></div>
 
     <script type="text/babel">
-        // ============================================================================
-        // CONFIGURACIÓN DE API KEY:
-        // Si deseas dejar tu clave fija en el código, pégala dentro de las comillas.
-        // También puedes ingresarla directamente desde la interfaz web (se guarda en localStorage).
-        // ============================================================================
-        const DEFAULT_API_KEY = "AQ.Ab8RN6JyXFXxjtqRu3VBkjyjkPT98pWfnJxwfcSPms16ioCj_w";
-
         const { useState, useEffect, useRef } = React;
 
-        // Componente auxiliar para renderizar fórmulas con KaTeX de forma segura
-        function Formula({ tex, display = false }) {
-            const containerRef = useRef(null);
-            useEffect(() => {
-                if (containerRef.current && window.katex) {
-                    try {
-                        window.katex.render(tex, containerRef.current, {
-                            throwOnError: false,
-                            displayMode: display
-                        });
-                    } catch (e) {
-                        containerRef.current.textContent = tex;
-                    }
-                }
-            }, [tex, display]);
-            return <span ref={containerRef} className={display ? "block my-2 overflow-x-auto" : "inline-block"} />;
-        }
+        // 👉 PEGA AQUÍ TU API KEY DE GOOGLE AI STUDIO 👈
+        const DEFAULT_API_KEY = "";
+        const MODEL_NAME = "gemini-2.5-flash";
 
-        // Componente de Iconos Lucide
-        function Icon({ name, className = "w-4 h-4" }) {
-            const iconRef = useRef(null);
-            useEffect(() => {
-                if (iconRef.current && window.lucide) {
-                    iconRef.current.innerHTML = `<i data-lucide="${name}" class="${className}"></i>`;
-                    window.lucide.createIcons({ root: iconRef.current });
-                }
-            }, [name, className]);
-            return <span ref={iconRef} className="inline-flex items-center justify-center shrink-0" />;
-        }
-
-        // Datos de Temas de Física
-        const TOPICS_DATA = [
+        const TOPICS = [
             {
                 id: 'termodinamica',
-                title: 'Termodinámica',
-                subtitle: 'Calor, Trabajo y Leyes Térmicas',
-                color: 'from-orange-500 to-rose-600',
-                badgeColor: 'text-orange-400 bg-orange-500/10 border-orange-500/20',
-                icon: 'flame',
-                description: 'Estudio de la transferencia de energía en forma de calor y trabajo mecánico en sistemas macroscópicos.',
+                name: 'Termodinámica',
+                category: 'Termodinámica',
+                description: 'Estudio del calor, el trabajo, la energía interna y las leyes que rigen los procesos térmicos.',
                 formulas: [
-                    { name: 'Primera Ley de la Termodinámica', tex: 'ΔU = Q - W' },
-                    { name: 'Calor Sensible', tex: 'Q = m \\cdot c \\cdot \\Delta T' },
-                    { name: 'Eficiencia Máxima (Carnot)', tex: '\\eta = 1 - \\frac{T_C}{T_H}' }
+                    { name: 'Primera Ley de la Termodinámica', eq: 'ΔU = Q - W' },
+                    { name: 'Eficiencia Térmica (Carnot)', eq: 'η = 1 - (Tc / Th)' },
+                    { name: 'Calor Sensible', eq: 'Q = m · c · ΔT' }
                 ]
             },
             {
                 id: 'electromagnetismo',
-                title: 'Electromagnetismo',
-                subtitle: 'Campos, Circuitos e Inducción',
-                color: 'from-cyan-500 to-blue-600',
-                badgeColor: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
-                icon: 'zap',
-                description: 'Interacción entre cargas eléctricas en reposo o movimiento, circuitos eléctricos y campos magnéticos.',
+                name: 'Electromagnetismo',
+                category: 'Electromagnetismo',
+                description: 'Interacción entre cargas, campos eléctricos y magnéticos, circuitos y leyes fundamentales.',
                 formulas: [
-                    { name: 'Ley de Ohm', tex: 'V = I \\cdot R' },
-                    { name: 'Ley de Coulomb', tex: 'F = k_e \\frac{|q_1 q_2|}{r^2}' },
-                    { name: 'Fuerza de Lorentz', tex: '\\vec{F} = q(\\vec{E} + \\vec{v} \\times \\vec{B})' }
+                    { name: 'Ley de Coulomb', eq: 'F = ke · |q1 · q2| / r²' },
+                    { name: 'Ley de Ohm', eq: 'V = I · R' },
+                    { name: 'Fuerza Magnética', eq: 'F = q · (v × B)' }
                 ]
             },
             {
                 id: 'optica',
-                title: 'Luz y Óptica',
-                subtitle: 'Reflexión, Refracción y Lentes',
-                color: 'from-violet-500 to-indigo-600',
-                badgeColor: 'text-violet-400 bg-violet-500/10 border-violet-500/20',
-                icon: 'sun',
-                description: 'Comportamiento de la luz al propagarse por distintos medios, formación de imágenes en espejos y lentes.',
+                name: 'Luz y Óptica',
+                category: 'Óptica',
+                description: 'Propagación de la luz, reflexión, refracción, formación de imágenes en lentes y espejos.',
                 formulas: [
-                    { name: 'Ley de Snell (Refracción)', tex: 'n_1 \\sin(\\theta_1) = n_2 \\sin(\\theta_2)' },
-                    { name: 'Ecuación de Lentes Delgadas', tex: '\\frac{1}{f} = \\frac{1}{d_o} + \\frac{1}{d_i}' },
-                    { name: 'Índice de Refracción', tex: 'n = \\frac{c}{v}' }
+                    { name: 'Ley de Snell', eq: 'n1 · sen(θ1) = n2 · sen(θ2)' },
+                    { name: 'Ecuación de Lentes y Espejos', eq: '1 / f = (1 / do) + (1 / di)' },
+                    { name: 'Índice de Refracción', eq: 'n = c / v' }
                 ]
             }
         ];
 
+        const SYSTEM_INSTRUCTION =
+            "Eres Física Master IA, un tutor experto especializado EXCLUSIVAMENTE en Física (Termodinámica, Electromagnetismo, Óptica, Mecánica y áreas afines). " +
+            "Si el usuario pregunta sobre temas ajenos a la física, rechaza educadamente la consulta y recuérdale que solo respondes sobre Física. " +
+            "Resuelve los problemas paso a paso con rigor científico y claridad. " +
+            "REGLA DE FORMATO OBLIGATORIA: Nunca uses código LaTeX, signos de dólar ($), barras invertidas (\\Delta, \\frac), asteriscos dobles (**) ni almohadillas (###). " +
+            "Escribe todas las ecuaciones, variables y unidades usando texto plano limpio y símbolos Unicode normales (por ejemplo: ΔU = Q - W, θ, η, ×, ÷, ², ³, √, °C, J, N, T).";
+
         function App() {
-            // Navegación principal: 'chat' o 'simuladores' (Nunca ambas al mismo tiempo)
             const [activeTab, setActiveTab] = useState('chat');
-            const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+            const [selectedTopic, setSelectedTopic] = useState('termodinamica');
 
-            // Gestión de API Key (Prioridad: localStorage -> DEFAULT_API_KEY)
-            const [apiKey, setApiKey] = useState(() => {
-                return localStorage.getItem('fisica_master_api_key') || DEFAULT_API_KEY;
-            });
-
-            const handleApiKeyChange = (val) => {
-                setApiKey(val);
-                localStorage.setItem('fisica_master_api_key', val);
-            };
-
-            // Gestión de Historial de Chats en localStorage
             const [chats, setChats] = useState(() => {
                 try {
                     const saved = localStorage.getItem('fisica_master_chats_v2');
@@ -164,85 +77,65 @@
                         const parsed = JSON.parse(saved);
                         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
                     }
-                } catch (e) {
-                    console.error("Error leyendo localStorage:", e);
-                }
+                } catch (e) {}
                 return [{
-                    id: 'chat_init',
-                    title: 'Consulta de Física',
+                    id: 'chat_1',
+                    title: 'Nueva Sesión de Física',
                     messages: [{
-                        role: 'model',
-                        content: '¡Hola! Soy **Física Master IA**, tu tutor especializado exclusivamente en **Física** (Termodinámica, Electromagnetismo, Óptica, Mecánica, etc.).\n\nEscribe tu duda o adjunta una foto de un problema, circuito o diagrama para resolverlo paso a paso.'
+                        role: 'assistant',
+                        content: '¡Hola! Soy Física Master IA, tu tutor especializado exclusivamente en Física (Termodinámica, Electromagnetismo y Óptica). Escribe tu duda, graba un audio o adjunta una foto de tu ejercicio para resolverlo paso a paso.'
                     }]
                 }];
             });
 
-            const [currentChatId, setCurrentChatId] = useState(() => chats[0]?.id || 'chat_init');
+            const [currentChatId, setCurrentChatId] = useState(() => chats[0]?.id || 'chat_1');
+            const [inputMessage, setInputMessage] = useState('');
+            const [selectedImage, setSelectedImage] = useState(null);
 
-            // Guardar chats automáticamente en localStorage
+            const [isRecording, setIsRecording] = useState(false);
+            const [selectedAudio, setSelectedAudio] = useState(null);
+            const mediaRecorderRef = useRef(null);
+            const audioChunksRef = useRef([]);
+
+            const [loadingAI, setLoadingAI] = useState(false);
+            const fileInputRef = useRef(null);
+            const chatEndRef = useRef(null);
+
             useEffect(() => {
                 try {
-                    localStorage.setItem('fisica_master_chats_v2', JSON.stringify(chats));
-                } catch (e) {
-                    console.error("Error guardando chats (posible límite de almacenamiento por imágenes):", e);
-                }
+                    const serializableChats = chats.map(c => ({
+                        ...c,
+                        messages: c.messages.map(m => ({
+                            ...m,
+                            audio: m.audio ? { data: m.audio.data, mimeType: m.audio.mimeType } : null
+                        }))
+                    }));
+                    localStorage.setItem('fisica_master_chats_v2', JSON.stringify(serializableChats));
+                } catch (e) {}
             }, [chats]);
+
+            useEffect(() => {
+                chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, [chats, currentChatId, activeTab, loadingAI]);
 
             const currentChat = chats.find(c => c.id === currentChatId) || chats[0];
 
-            // Estados del Chat Activo
-            const [inputMessage, setInputMessage] = useState('');
-            const [selectedImage, setSelectedImage] = useState(null);
-            const [isLoading, setIsLoading] = useState(false);
-            const [statusBanner, setStatusBanner] = useState(null);
-            const fileInputRef = useRef(null);
-            const messagesEndRef = useRef(null);
-
-            useEffect(() => {
-                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-            }, [currentChat?.messages, isLoading, activeTab]);
-
-            // Crear nuevo chat
-            const createNewChat = () => {
-                const newId = 'chat_' + Date.now();
-                const newSession = {
-                    id: newId,
-                    title: 'Nueva Sesión de Física',
-                    messages: [{
-                        role: 'model',
-                        content: '¡Nueva sesión iniciada! Recuerda que estoy programado exclusivamente para responder temas de Física. ¿Qué ejercicio o concepto analizamos hoy?'
-                    }]
-                };
-                setChats(prev => [newSession, ...prev]);
-                setCurrentChatId(newId);
-                setActiveTab('chat');
-                setMobileMenuOpen(false);
+            const base64ToAudioUrl = (audioObj) => {
+                if (!audioObj) return null;
+                if (audioObj.url) return audioObj.url;
+                const byteCharacters = atob(audioObj.data);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: audioObj.mimeType || 'audio/webm' });
+                return URL.createObjectURL(blob);
             };
 
-            // Borrar chat
-            const deleteChat = (id, e) => {
-                e.stopPropagation();
-                if (chats.length <= 1) {
-                    setStatusBanner("Debe existir al menos una sesión activa.");
-                    setTimeout(() => setStatusBanner(null), 3000);
-                    return;
-                }
-                const updated = chats.filter(c => c.id !== id);
-                setChats(updated);
-                if (currentChatId === id) {
-                    setCurrentChatId(updated[0].id);
-                }
-            };
-
-            // Manejo de selección de imagen
-            const handleImageUpload = (e) => {
+            const handleImageSelect = (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
-                if (!file.type.startsWith('image/')) {
-                    setStatusBanner("Por favor, selecciona un archivo de imagen válido.");
-                    setTimeout(() => setStatusBanner(null), 3000);
-                    return;
-                }
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     setSelectedImage(reader.result);
@@ -250,322 +143,375 @@
                 reader.readAsDataURL(file);
             };
 
-            const clearImage = () => {
+            const removeSelectedImage = () => {
                 setSelectedImage(null);
                 if (fileInputRef.current) fileInputRef.current.value = '';
             };
 
-            // Envío de mensaje a Gemini API (gemini-3.8-flash)
-            const handleSendMessage = async (e) => {
-                if (e) e.preventDefault();
-                if ((!inputMessage.trim() && !selectedImage) || isLoading) return;
+            const startRecording = async () => {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    const mimeType = MediaRecorder.isTypeSupported('audio/webm')
+                        ? 'audio/webm'
+                        : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '');
 
-                const effectiveKey = (apiKey || DEFAULT_API_KEY).trim();
-                if (!effectiveKey) {
-                    setStatusBanner("⚠️ Ingresa tu API Key de Gemini en la barra lateral izquierda antes de enviar.");
-                    setTimeout(() => setStatusBanner(null), 4500);
-                    return;
+                    const recorder = mimeType
+                        ? new MediaRecorder(stream, { mimeType })
+                        : new MediaRecorder(stream);
+
+                    mediaRecorderRef.current = recorder;
+                    audioChunksRef.current = [];
+
+                    recorder.ondataavailable = (event) => {
+                        if (event.data && event.data.size > 0) {
+                            audioChunksRef.current.push(event.data);
+                        }
+                    };
+
+                    recorder.onstop = () => {
+                        const finalMime = recorder.mimeType || mimeType || 'audio/webm';
+                        const audioBlob = new Blob(audioChunksRef.current, { type: finalMime });
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            const base64Data = reader.result.split(',')[1];
+                            setSelectedAudio({
+                                data: base64Data,
+                                mimeType: finalMime,
+                                url: audioUrl
+                            });
+                        };
+                        reader.readAsDataURL(audioBlob);
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+
+                    recorder.start();
+                    setIsRecording(true);
+                } catch (err) {
+                    alert("No se pudo acceder al micrófono. Revisa los permisos del navegador.");
                 }
+            };
+
+            const stopRecording = () => {
+                if (mediaRecorderRef.current && isRecording) {
+                    mediaRecorderRef.current.stop();
+                    setIsRecording(false);
+                }
+            };
+
+            const removeSelectedAudio = () => {
+                setSelectedAudio(null);
+            };
+
+            const handleSendMessage = async (e) => {
+                e.preventDefault();
+                if (isRecording) stopRecording();
+                if (!inputMessage.trim() && !selectedImage && !selectedAudio) return;
 
                 const userMsg = {
                     role: 'user',
                     content: inputMessage.trim(),
-                    image: selectedImage
+                    image: selectedImage,
+                    audio: selectedAudio
                 };
 
-                // Actualizar estado local del chat
-                const updatedChats = chats.map(c => {
-                    if (c.id === currentChatId) {
-                        const newMessages = [...c.messages, userMsg];
-                        let newTitle = c.title;
-                        if (c.messages.length <= 1 && userMsg.content) {
-                            newTitle = userMsg.content.slice(0, 28) + (userMsg.content.length > 28 ? '...' : '');
-                        } else if (c.messages.length <= 1 && userMsg.image) {
-                            newTitle = 'Análisis de Imagen Física';
-                        }
-                        return { ...c, title: newTitle, messages: newMessages };
-                    }
-                    return c;
-                });
+                const updatedHistory = [...currentChat.messages, userMsg];
 
-                setChats(updatedChats);
+                setChats(prev => prev.map(chat => {
+                    if (chat.id !== currentChatId) return chat;
+                    let title = chat.title;
+                    if (chat.messages.length <= 1) {
+                        if (userMsg.content) {
+                            title = userMsg.content.slice(0, 32) + (userMsg.content.length > 32 ? '...' : '');
+                        } else if (userMsg.audio) {
+                            title = 'Consulta por audio';
+                        } else if (userMsg.image) {
+                            title = 'Problema con imagen';
+                        }
+                    }
+                    return { ...chat, title, messages: updatedHistory };
+                }));
+
                 setInputMessage('');
-                clearImage();
-                setIsLoading(true);
+                setSelectedImage(null);
+                setSelectedAudio(null);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+                setLoadingAI(true);
 
                 try {
-                    const systemPrompt = `Eres "Física Master IA", un tutor y profesor universitario experto especializado EXCLUSIVAMENTE en Física (Termodinámica, Electromagnetismo, Óptica, Mecánica Clásica, Física Moderna, etc.).
-REGLA ESTRICTA E INQUEBRANTABLE:
-Nunca uses código LaTeX, signos de dólar ($), barras invertidas (\\Delta, \\frac), asteriscos (**) ni almohadillas (###). Escribe todas las ecuaciones y unidades usando texto plano limpio y símbolos Unicode normales (por ejemplo: ΔU = Q - W, θ, η, ×, ÷, ², ³, √).
-Tu única área de conocimiento permitida es la FÍSICA. Si el usuario te pregunta, pide ayuda o conversa sobre cualquier tema ajeno a la física (por ejemplo: programación, historia, cocina, política, entretenimiento, biología sin enfoque biofísico, o matemáticas puras sin aplicación física), debes rechazar la solicitud de manera amable, breve y profesional, indicándole que estás programado exclusivamente para asistir con temas y problemas de Física.
+                    const apiKey = (DEFAULT_API_KEY || '').trim();
+                    if (!apiKey) {
+                        throw new Error("Falta configurar DEFAULT_API_KEY en el código.");
+                    }
 
-Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos, problemas escritos, gráficas):
-1. Identifica los principios o leyes físicas involucradas.
-2. Extrae los datos conocidos y las incógnitas con sus unidades en el Sistema Internacional (SI).
-3. Muestra las fórmulas y desarrolla la resolución paso a paso con claridad y rigor científico.`;
-
-                    const conversationHistory = currentChat.messages.concat([userMsg]).map(msg => {
+                    const contents = updatedHistory.map(m => {
                         const parts = [];
-                        if (msg.content) parts.push({ text: msg.content });
-                        if (msg.image) {
-                            const commaIdx = msg.image.indexOf(',');
-                            const mimeType = msg.image.substring(5, msg.image.indexOf(';'));
-                            const base64Data = msg.image.substring(commaIdx + 1);
+                        if (m.content) parts.push({ text: m.content });
+                        if (m.image) {
+                            const mimeType = m.image.substring(5, m.image.indexOf(';'));
+                            const base64Data = m.image.split(',')[1];
+                            parts.push({ inline_data: { mime_type: mimeType, data: base64Data } });
+                        }
+                        if (m.audio && m.audio.data) {
                             parts.push({
                                 inline_data: {
-                                    mime_type: mimeType,
-                                    data: base64Data
+                                    mime_type: m.audio.mimeType || 'audio/webm',
+                                    data: m.audio.data
                                 }
                             });
                         }
                         return {
-                            role: msg.role === 'user' ? 'user' : 'model',
+                            role: m.role === 'user' ? 'user' : 'model',
                             parts
                         };
                     });
 
                     const response = await fetch(
-                        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${effectiveKey}`,
+                        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`,
                         {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                system_instruction: { parts: [{ text: systemPrompt }] },
-                                contents: conversationHistory
+                                system_instruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+                                contents
                             })
                         }
                     );
 
                     const data = await response.json();
-
                     if (!response.ok) {
-                        throw new Error(data.error?.message || `Error HTTP ${response.status}`);
+                        const errMsg = data?.error?.message || 'Error en la respuesta de Gemini.';
+                        throw new Error(errMsg);
                     }
 
-                    const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No se recibió respuesta del modelo.";
-                    const aiMsg = { role: 'model', content: replyText };
+                    const aiText =
+                        data.candidates?.[0]?.content?.parts?.[0]?.text ||
+                        "No se recibió contenido de respuesta.";
 
-                    setChats(prev => prev.map(c =>
-                        c.id === currentChatId ? { ...c, messages: [...c.messages, aiMsg] } : c
-                    ));
+                    setChats(prev =>
+                        prev.map(c =>
+                            c.id === currentChatId
+                                ? { ...c, messages: [...c.messages, { role: 'assistant', content: aiText }] }
+                                : c
+                        )
+                    );
                 } catch (err) {
-                    console.error("Error API Gemini:", err);
-                    const errorMsg = {
-                        role: 'model',
-                        content: `❌ **Error al conectar con Gemini:** ${err.message}\n\nVerifica que tu API Key de Gemini sea válida y tenga permisos activos.`
-                    };
-                    setChats(prev => prev.map(c =>
-                        c.id === currentChatId ? { ...c, messages: [...c.messages, errorMsg] } : c
-                    ));
+                    setChats(prev =>
+                        prev.map(c =>
+                            c.id === currentChatId
+                                ? {
+                                      ...c,
+                                      messages: [
+                                          ...c.messages,
+                                          { role: 'assistant', content: `Error al conectar con Gemini: ${err.message}` }
+                                      ]
+                                  }
+                                : c
+                        )
+                    );
                 } finally {
-                    setIsLoading(false);
+                    setLoadingAI(false);
                 }
             };
 
-            // ========================================================================
-            // ESTADOS DE LOS SIMULADORES INTERACTIVOS (PESTAÑA 2)
-            // ========================================================================
-            // 1. Termodinámica: Calor Sensible Q = m * c * ΔT
-            const [mass, setMass] = useState(2); // kg
-            const [specificHeat, setSpecificHeat] = useState(4186); // J/(kg·K) Agua
-            const [deltaT, setDeltaT] = useState(15); // °C o K
-            const heatQ = (Number(mass) * Number(specificHeat) * Number(deltaT)).toFixed(2);
+            const createNewChat = () => {
+                const newId = 'chat_' + Date.now();
+                const newChatObj = {
+                    id: newId,
+                    title: 'Nueva Sesión de Física',
+                    messages: [{
+                        role: 'assistant',
+                        content: '¡Nueva sesión iniciada! Recuerda que estoy programado exclusivamente para responder temas de Física. ¿Qué duda, audio o ejercicio analizamos hoy?'
+                    }]
+                };
+                setChats([newChatObj, ...chats]);
+                setCurrentChatId(newId);
+                setActiveTab('chat');
+            };
 
-            // 2. Electromagnetismo: Ley de Ohm V = I * R
-            const [currentI, setCurrentI] = useState(2.5); // A
-            const [resistanceR, setResistanceR] = useState(12); // Ω
-            const voltageV = (Number(currentI) * Number(resistanceR)).toFixed(2);
-            const powerP = (Number(voltageV) * Number(currentI)).toFixed(2);
-
-            // 3. Óptica: Ley de Snell n1 * sin(θ1) = n2 * sin(θ2)
-            const [n1, setN1] = useState(1.0); // Aire
-            const [n2, setN2] = useState(1.33); // Agua
-            const [theta1, setTheta1] = useState(30); // grados
-            const sinTheta2 = (Number(n1) / Number(n2)) * Math.sin((Number(theta1) * Math.PI) / 180);
-            const isTotalInternalReflection = Math.abs(sinTheta2) > 1;
-            const theta2 = isTotalInternalReflection
-                ? "Reflexión Interna Total"
-                : ((Math.asin(sinTheta2) * 180) / Math.PI).toFixed(2) + "°";
+            const deleteChat = (id, e) => {
+                e.stopPropagation();
+                if (chats.length <= 1) return;
+                const filtered = chats.filter(c => c.id !== id);
+                setChats(filtered);
+                if (currentChatId === id) {
+                    setCurrentChatId(filtered[0].id);
+                }
+            };
 
             return (
-                <div className="flex h-full w-full bg-[#060913] text-slate-100 overflow-hidden relative">
-                    {/* Overlay para móvil cuando el menú está abierto */}
-                    {mobileMenuOpen && (
-                        <div
-                            onClick={() => setMobileMenuOpen(false)}
-                            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-30 lg:hidden"
-                        />
-                    )}
-
-                    {/* ================================================================
-                        1. BARRA LATERAL IZQUIERDA FIJA (w-72)
-                       ================================================================ */}
-                    <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-72 bg-[#0b101e] border-r border-slate-800/80 flex flex-col justify-between transition-transform duration-300 ease-in-out shrink-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-                        
-                        {/* Parte superior: Logo y botón Nuevo Chat */}
-                        <div className="p-4 border-b border-slate-800/80 space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/20">
-                                        <Icon name="atom" className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <h1 className="font-bold text-base tracking-tight text-white leading-none">Física Master IA</h1>
-                                        <span className="text-[11px] text-cyan-400 font-medium">Tutor Científico</span>
-                                    </div>
+                <div className="flex h-screen overflow-hidden bg-slate-950 text-slate-100">
+                    {/* Barra lateral */}
+                    <aside className="w-80 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0">
+                        <div className="p-4 border-b border-slate-800">
+                            <h1 className="font-bold text-lg text-cyan-400 flex items-center gap-2">
+                                <span className="p-1.5 bg-cyan-500/10 rounded-lg">⚛️</span>
+                                <div>
+                                    <div>Física Master IA</div>
+                                    <div className="text-xs font-normal text-slate-400">Tutor Científico</div>
                                 </div>
-                                <button
-                                    onClick={() => setMobileMenuOpen(false)}
-                                    className="lg:hidden p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
-                                >
-                                    <Icon name="x" className="w-5 h-5" />
-                                </button>
-                            </div>
+                            </h1>
+                        </div>
 
+                        <div className="p-3 border-b border-slate-800">
                             <button
                                 onClick={createNewChat}
-                                className="w-full py-2.5 px-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold rounded-xl text-sm flex items-center justify-center gap-2 shadow-md shadow-cyan-950/50 transition-all active:scale-[0.98]"
+                                className="w-full py-2.5 px-3 bg-cyan-600 hover:bg-cyan-500 text-white font-medium rounded-xl text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/40"
                             >
-                                <Icon name="plus" className="w-4 h-4" />
-                                <span>Nuevo Chat</span>
+                                <span>+</span> Nuevo Chat
                             </button>
                         </div>
 
-                        {/* Centro: Lista del Historial de Chats en localStorage */}
                         <div className="flex-1 overflow-y-auto p-3 space-y-1">
-                            <div className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                            <div className="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase px-2 mb-2">
                                 <span>Historial de Chats</span>
-                                <span className="bg-slate-800/80 text-slate-400 px-1.5 py-0.5 rounded text-[10px]">{chats.length}</span>
+                                <span>{chats.length}</span>
                             </div>
-
-                            {chats.map(chat => {
-                                const isActive = chat.id === currentChatId && activeTab === 'chat';
-                                return (
-                                    <div
-                                        key={chat.id}
-                                        onClick={() => {
-                                            setCurrentChatId(chat.id);
-                                            setActiveTab('chat');
-                                            setMobileMenuOpen(false);
-                                        }}
-                                        className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer text-sm transition-all ${
-                                            isActive
-                                                ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-medium'
-                                                : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 border border-transparent'
-                                        }`}
-                                    >
-                                        <div className="flex items-center gap-2.5 min-w-0">
-                                            <Icon name="message-square" className={`w-4 h-4 ${isActive ? 'text-cyan-400' : 'text-slate-500'}`} />
-                                            <span className="truncate text-xs">{chat.title}</span>
-                                        </div>
+                            {chats.map(chat => (
+                                <div
+                                    key={chat.id}
+                                    onClick={() => {
+                                        setCurrentChatId(chat.id);
+                                        setActiveTab('chat');
+                                    }}
+                                    className={`group flex items-center justify-between p-2.5 rounded-xl cursor-pointer text-sm transition ${
+                                        chat.id === currentChatId && activeTab === 'chat'
+                                            ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-medium'
+                                            : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
+                                    }`}
+                                >
+                                    <span className="truncate pr-2">{chat.title}</span>
+                                    {chats.length > 1 && (
                                         <button
                                             onClick={(e) => deleteChat(chat.id, e)}
+                                            className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 text-slate-500 transition"
                                             title="Eliminar conversación"
-                                            className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-all"
                                         >
-                                            <Icon name="trash-2" className="w-3.5 h-3.5" />
+                                            🗑️
                                         </button>
-                                    </div>
-                                );
-                            })}
+                                    )}
+                                </div>
+                            ))}
                         </div>
-
-                        {/* Parte inferior: Configuración práctica de API Key de Gemini */}
-
                     </aside>
-                    {/* ================================================================
-                        2. ÁREA PRINCIPAL DERECHA
-                       ================================================================ */}
-                    <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-                        
-                        {/* BARRA SUPERIOR (HEADER) CON DOS PESTAÑAS BIEN DIFERENCIADAS */}
-                        <header className="h-16 bg-[#0b101e]/90 backdrop-blur-md border-b border-slate-800/80 px-4 lg:px-8 flex items-center justify-between shrink-0 z-20">
-                            <div className="flex items-center gap-3">
+
+                    {/* Área principal */}
+                    <main className="flex-1 flex flex-col bg-slate-950 overflow-hidden">
+                        {/* Encabezado y pestañas */}
+                        <header className="p-3.5 border-b border-slate-800 bg-slate-950/90 backdrop-blur flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
                                 <button
-                                    onClick={() => setMobileMenuOpen(true)}
-                                    className="lg:hidden p-2 rounded-xl bg-slate-800/80 text-slate-300 hover:text-white"
-                                    aria-label="Abrir menú"
+                                    onClick={() => setActiveTab('chat')}
+                                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${
+                                        activeTab === 'chat'
+                                            ? 'bg-cyan-600 text-white shadow'
+                                            : 'text-slate-400 hover:text-slate-200'
+                                    }`}
                                 >
-                                    <Icon name="menu" className="w-5 h-5" />
+                                    🤖 Tutor IA de Física
                                 </button>
-
-                                {/* Selector de Pestañas (Exclusivo: una vista a la vez) */}
-                                <nav className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800">
-                                    <button
-                                        onClick={() => setActiveTab('chat')}
-                                        className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all ${
-                                            activeTab === 'chat'
-                                                ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md'
-                                                : 'text-slate-400 hover:text-slate-200'
-                                        }`}
-                                    >
-                                        <Icon name="bot" className="w-4 h-4" />
-                                        <span>Tutor IA de Física</span>
-                                    </button>
-
-                                    <button
-                                        onClick={() => setActiveTab('simuladores')}
-                                        className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all ${
-                                            activeTab === 'simuladores'
-                                                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md'
-                                                : 'text-slate-400 hover:text-slate-200'
-                                        }`}
-                                    >
-                                        <Icon name="sliders" className="w-4 h-4" />
-                                        <span>Fórmulas y Simuladores</span>
-                                    </button>
-                                </nav>
+                                <button
+                                    onClick={() => setActiveTab('formulas')}
+                                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${
+                                        activeTab === 'formulas'
+                                            ? 'bg-cyan-600 text-white shadow'
+                                            : 'text-slate-400 hover:text-slate-200'
+                                    }`}
+                                >
+                                    📐 Fórmulas y Simuladores
+                                </button>
                             </div>
 
-                            <div className="hidden sm:flex items-center gap-2 text-xs text-cyan-400 bg-cyan-950/40 border border-cyan-800/40 px-3 py-1.5 rounded-full">
-                                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                                <span>Modo Estricto: Solo Física</span>
-                            </div>
+                            <span className="text-xs bg-cyan-950/80 text-cyan-400 px-3 py-1.5 rounded-full border border-cyan-800/50 hidden sm:inline-flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                Modo Estricto: Solo Física
+                            </span>
                         </header>
 
-                        {/* Banner de notificaciones no intrusivo */}
-                        {statusBanner && (
-                            <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-200 px-4 py-2 text-xs text-center font-medium shrink-0">
-                                {statusBanner}
-                            </div>
-                        )}
+                        {activeTab === 'formulas' ? (
+                            <div className="flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full">
+                                <div className="mb-6">
+                                    <h2 className="text-2xl font-bold text-white mb-1">Bloques de Física Exclusivos</h2>
+                                    <p className="text-slate-400 text-sm">Termodinámica, Electromagnetismo y Óptica con ecuaciones clave.</p>
+                                </div>
 
-                        {/* ============================================================
-                            VISTA 1: TUTOR IA DE FÍSICA (OCUPA TODO EL ALTO ORDENADAMENTE)
-                           ============================================================ */}
-                        {activeTab === 'chat' && (
-                            <div className="flex-1 flex flex-col h-full overflow-hidden max-w-4xl w-full mx-auto">
-                                {/* Área de mensajes con scroll independiente */}
-                                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
-                                    {currentChat.messages.map((msg, idx) => {
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                                    {TOPICS.map(t => (
+                                        <div
+                                            key={t.id}
+                                            onClick={() => setSelectedTopic(t.id)}
+                                            className={`p-5 rounded-2xl border cursor-pointer transition ${
+                                                selectedTopic === t.id
+                                                    ? 'bg-cyan-950/35 border-cyan-500 shadow-lg shadow-cyan-950/40'
+                                                    : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
+                                            }`}
+                                        >
+                                            <span className="text-xs text-cyan-400 font-semibold uppercase">{t.category}</span>
+                                            <h3 className="text-lg font-bold text-white mt-1 mb-2">{t.name}</h3>
+                                            <p className="text-slate-400 text-xs leading-relaxed">{t.description}</p>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {(() => {
+                                    const topicData = TOPICS.find(t => t.id === selectedTopic) || TOPICS[0];
+                                    return (
+                                        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6">
+                                            <h3 className="text-xl font-bold text-white mb-4">Fórmulas Clave de {topicData.name}</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                {topicData.formulas.map((f, i) => (
+                                                    <div key={i} className="p-4 bg-slate-950 rounded-xl border border-slate-800/80">
+                                                        <div className="text-sm font-medium text-slate-300 mb-2">{f.name}</div>
+                                                        <div className="text-cyan-400 font-mono text-base">{f.eq}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        ) : (
+                            <>
+                                {/* Mensajes */}
+                                <div className="flex-1 overflow-y-auto p-4 space-y-4 max-w-4xl mx-auto w-full">
+                                    {currentChat.messages.map((msg, index) => {
                                         const isUser = msg.role === 'user';
+                                        const audioSrc = msg.audio ? base64ToAudioUrl(msg.audio) : null;
+
                                         return (
-                                            <div key={idx} className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
+                                            <div key={index} className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
                                                 {!isUser && (
-                                                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0 mt-1 shadow">
+                                                    <div className="w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center text-white font-bold text-xs shrink-0 shadow">
                                                         IA
                                                     </div>
                                                 )}
-
-                                                <div className={`max-w-[85%] sm:max-w-[78%] rounded-2xl px-4 py-3.5 text-sm leading-relaxed shadow-lg ${
-                                                    isUser
-                                                        ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-br-sm'
-                                                        : 'bg-[#111827] border border-slate-800 text-slate-200 rounded-bl-sm'
-                                                }`}>
+                                                <div
+                                                    className={`max-w-[80%] rounded-2xl p-4 text-sm leading-relaxed ${
+                                                        isUser
+                                                            ? 'bg-cyan-600 text-white rounded-br-none'
+                                                            : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none shadow-lg'
+                                                    }`}
+                                                >
                                                     {msg.image && (
                                                         <div className="mb-3">
                                                             <img
                                                                 src={msg.image}
                                                                 alt="Ejercicio adjunto"
-                                                                className="max-h-60 rounded-xl border border-slate-700/80 object-contain bg-black/40"
+                                                                className="max-h-56 rounded-xl object-contain border border-slate-700/70"
                                                             />
                                                         </div>
                                                     )}
-                                                    <div className="whitespace-pre-wrap break-words">{msg.content}</div>
+                                                    {audioSrc && (
+                                                        <div className="mb-3">
+                                                            <audio controls src={audioSrc} className="h-9 max-w-full rounded-lg" />
+                                                        </div>
+                                                    )}
+                                                    {msg.content && (
+                                                        <div className="whitespace-pre-wrap break-words">{msg.content}</div>
+                                                    )}
                                                 </div>
-
                                                 {isUser && (
-                                                    <div className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 text-xs font-bold shrink-0 mt-1">
+                                                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold text-xs shrink-0">
                                                         Tú
                                                     </div>
                                                 )}
@@ -573,40 +519,57 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                         );
                                     })}
 
-                                    {isLoading && (
-                                        <div className="flex gap-3 justify-start items-center">
-                                            <div className="w-8 h-8 rounded-xl bg-cyan-600/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-                                                <Icon name="loader-2" className="w-4 h-4 animate-spin" />
+                                    {loadingAI && (
+                                        <div className="flex gap-3 items-center text-slate-400 text-sm">
+                                            <div className="w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center text-white font-bold text-sm animate-spin">
+                                                ⚛️
                                             </div>
-                                            <div className="bg-[#111827] border border-slate-800 rounded-2xl px-4 py-3 text-xs text-slate-400">
+                                            <div className="bg-slate-900 border border-slate-800 px-4 py-3 rounded-2xl">
                                                 Analizando leyes físicas y resolviendo paso a paso...
                                             </div>
                                         </div>
                                     )}
-                                    <div ref={messagesEndRef} />
+                                    <div ref={chatEndRef} />
                                 </div>
 
-                                {/* Barra inferior fija para texto e imágenes */}
-                                <div className="p-4 bg-[#060913] border-t border-slate-800/80 shrink-0">
-                                    <form onSubmit={handleSendMessage} className="bg-[#0f1629] border border-slate-800 rounded-2xl p-2.5 shadow-xl space-y-2.5">
-                                        {/* Vista previa de imagen antes de enviar */}
-                                        {selectedImage && (
-                                            <div className="flex items-center justify-between bg-slate-900/90 border border-slate-700/80 rounded-xl p-2">
-                                                <div className="flex items-center gap-3">
-                                                    <img src={selectedImage} alt="Vista previa" className="w-12 h-12 rounded-lg object-cover border border-slate-600" />
-                                                    <div>
-                                                        <p className="text-xs font-medium text-slate-200">Imagen adjunta lista</p>
-                                                        <p className="text-[11px] text-slate-400">Se analizará junto con tu pregunta</p>
+                                {/* Barra de entrada */}
+                                <div className="p-4 bg-slate-900 border-t border-slate-800">
+                                    <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex flex-col gap-2.5">
+                                        {(selectedImage || selectedAudio || isRecording) && (
+                                            <div className="flex flex-wrap items-center gap-3">
+                                                {selectedImage && (
+                                                    <div className="flex items-center gap-2 bg-slate-950 p-2 rounded-xl border border-slate-800">
+                                                        <img src={selectedImage} alt="Preview" className="w-12 h-12 object-cover rounded-lg" />
+                                                        <span className="text-xs text-slate-300">Imagen lista</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={removeSelectedImage}
+                                                            className="text-red-400 hover:text-red-300 px-2 font-bold"
+                                                        >
+                                                            ×
+                                                        </button>
                                                     </div>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={clearImage}
-                                                    className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
-                                                    title="Quitar imagen"
-                                                >
-                                                    <Icon name="x" className="w-4 h-4" />
-                                                </button>
+                                                )}
+
+                                                {selectedAudio && (
+                                                    <div className="flex items-center gap-2 bg-slate-950 p-2 rounded-xl border border-slate-800">
+                                                        <audio controls src={selectedAudio.url} className="h-8" />
+                                                        <button
+                                                            type="button"
+                                                            onClick={removeSelectedAudio}
+                                                            className="text-red-400 hover:text-red-300 px-2 font-bold"
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                {isRecording && (
+                                                    <div className="flex items-center gap-2 bg-red-950/60 border border-red-700/60 text-red-300 px-3 py-2 rounded-xl text-xs">
+                                                        <span className="w-2 h-2 rounded-full bg-red-400 animate-ping"></span>
+                                                        Grabando audio... pulsa el botón rojo para detener.
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
 
@@ -615,16 +578,29 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                                 type="file"
                                                 accept="image/*"
                                                 ref={fileInputRef}
-                                                onChange={handleImageUpload}
+                                                onChange={handleImageSelect}
                                                 className="hidden"
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => fileInputRef.current?.click()}
-                                                className="p-3 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-cyan-400 border border-slate-700/70 transition-colors shrink-0"
-                                                title="Adjuntar imagen de problema, circuito o diagrama"
+                                                className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition flex items-center justify-center"
+                                                title="Adjuntar imagen de problema o circuito"
                                             >
-                                                <Icon name="image-plus" className="w-5 h-5" />
+                                                🖼️
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={isRecording ? stopRecording : startRecording}
+                                                className={`p-3 rounded-xl transition flex items-center justify-center ${
+                                                    isRecording
+                                                        ? 'bg-red-600 hover:bg-red-500 text-white animate-pulse'
+                                                        : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                                                }`}
+                                                title={isRecording ? 'Detener grabación' : 'Grabar audio de física'}
+                                            >
+                                                {isRecording ? '⏹️' : '🎤'}
                                             </button>
 
                                             <input
@@ -632,202 +608,27 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                                 value={inputMessage}
                                                 onChange={(e) => setInputMessage(e.target.value)}
                                                 placeholder="Escribe tu duda de Termodinámica, Electromagnetismo u Óptica..."
-                                                className="flex-1 bg-transparent px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none"
+                                                className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 text-sm"
                                             />
 
                                             <button
                                                 type="submit"
-                                                disabled={isLoading || (!inputMessage.trim() && !selectedImage)}
-                                                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-40 disabled:pointer-events-none text-white text-sm font-semibold flex items-center gap-2 shadow-md transition-all shrink-0"
+                                                disabled={loadingAI || (!inputMessage.trim() && !selectedImage && !selectedAudio)}
+                                                className="bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-medium px-5 py-3 rounded-xl transition text-sm shadow-lg shadow-cyan-950/40"
                                             >
-                                                <span className="hidden sm:inline">Enviar</span>
-                                                <Icon name="send" className="w-4 h-4" />
+                                                Enviar
                                             </button>
                                         </div>
                                     </form>
                                 </div>
-                            </div>
+                            </>
                         )}
-
-                        {/* ============================================================
-                            VISTA 2: FÓRMULAS Y SIMULADORES INTERACTIVOS
-                           ============================================================ */}
-                        {activeTab === 'simuladores' && (
-                            <div className="flex-1 overflow-y-auto p-4 sm:p-8">
-                                <div className="max-w-6xl mx-auto space-y-8">
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-white">Fórmulas Clave y Simuladores Interactivos</h2>
-                                        <p className="text-sm text-slate-400 mt-1">
-                                            Explora las ecuaciones fundamentales renderizadas con KaTeX y experimenta con los calculadores en tiempo real.
-                                        </p>
-                                    </div>
-
-                                    {/* Tarjetas de Fórmulas por Tema */}
-                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                        {TOPICS_DATA.map(topic => (
-                                            <div key={topic.id} className="bg-[#0f1629] border border-slate-800/90 rounded-2xl p-6 flex flex-col justify-between shadow-xl">
-                                                <div className="space-y-3">
-                                                    <div className="flex items-center justify-between">
-                                                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${topic.color} flex items-center justify-center text-white shadow`}>
-                                                            <Icon name={topic.icon} className="w-5 h-5" />
-                                                        </div>
-                                                        <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${topic.badgeColor}`}>
-                                                            {topic.title}
-                                                        </span>
-                                                    </div>
-                                                    <h3 className="text-lg font-bold text-white">{topic.subtitle}</h3>
-                                                    <p className="text-xs text-slate-400 leading-relaxed">{topic.description}</p>
-                                                </div>
-
-                                                <div className="mt-5 pt-4 border-t border-slate-800 space-y-2.5">
-                                                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Ecuaciones Principales</span>
-                                                    {topic.formulas.map((f, i) => (
-                                                        <div key={i} className="bg-[#070b14] border border-slate-800/80 rounded-xl p-3">
-                                                            <div className="text-[11px] text-slate-400 mb-1">{f.name}</div>
-                                                            <div className="text-cyan-300 text-sm">
-                                                                <Formula tex={f.tex} display={true} />
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    {/* Sección de Simuladores / Calculadores Interactivos */}
-                                    <div className="pt-4">
-                                        <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                                            <Icon name="cpu" className="w-5 h-5 text-cyan-400" />
-                                            <span>Simuladores Rápidos en Tiempo Real</span>
-                                        </h3>
-
-                                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                            {/* Simulador 1: Calor Sensible (Termodinámica) */}
-                                            <div className="bg-[#0f1629] border border-slate-800 rounded-2xl p-6 space-y-4 shadow-lg">
-                                                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                                                    <h4 className="font-bold text-orange-400 text-sm">1. Calor Sensible (Termodinámica)</h4>
-                                                    <Formula tex="Q = m c \Delta T" />
-                                                </div>
-                                                <div className="space-y-3 text-xs">
-                                                    <div>
-                                                        <label className="flex justify-between text-slate-300 mb-1">
-                                                            <span>Masa (m):</span>
-                                                            <span className="font-mono text-orange-300">{mass} kg</span>
-                                                        </label>
-                                                        <input type="range" min="0.5" max="20" step="0.5" value={mass} onChange={e => setMass(e.target.value)} className="w-full accent-orange-500" />
-                                                    </div>
-                                                    <div>
-                                                        <label className="flex justify-between text-slate-300 mb-1">
-                                                            <span>Calor Específico (c):</span>
-                                                            <span className="font-mono text-orange-300">{specificHeat} J/kg·K</span>
-                                                        </label>
-                                                        <select value={specificHeat} onChange={e => setSpecificHeat(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200">
-                                                            <option value="4186">Agua Líquida (4186 J/kg·K)</option>
-                                                            <option value="900">Aluminio (900 J/kg·K)</option>
-                                                            <option value="385">Cobre (385 J/kg·K)</option>
-                                                            <option value="450">Hierro (450 J/kg·K)</option>
-                                                        </select>
-                                                    </div>
-                                                    <div>
-                                                        <label className="flex justify-between text-slate-300 mb-1">
-                                                            <span>Variación Temp. (ΔT):</span>
-                                                            <span className="font-mono text-orange-300">{deltaT} K</span>
-                                                        </label>
-                                                        <input type="range" min="-50" max="100" step="1" value={deltaT} onChange={e => setDeltaT(e.target.value)} className="w-full accent-orange-500" />
-                                                    </div>
-                                                </div>
-                                                <div className="bg-[#070b14] border border-orange-500/30 rounded-xl p-3.5 text-center">
-                                                    <span className="text-[11px] text-slate-400 block">Calor Transferido (Q)</span>
-                                                    <span className="text-lg font-extrabold text-orange-400 font-mono">{heatQ} J</span>
-                                                </div>
-                                            </div>
-
-                                            {/* Simulador 2: Ley de Ohm (Electromagnetismo) */}
-                                            <div className="bg-[#0f1629] border border-slate-800 rounded-2xl p-6 space-y-4 shadow-lg">
-                                                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                                                    <h4 className="font-bold text-cyan-400 text-sm">2. Ley de Ohm (Electromagnetismo)</h4>
-                                                    <Formula tex="V = I \cdot R" />
-                                                </div>
-                                                <div className="space-y-3 text-xs">
-                                                    <div>
-                                                        <label className="flex justify-between text-slate-300 mb-1">
-                                                            <span>Corriente Eléctrica (I):</span>
-                                                            <span className="font-mono text-cyan-300">{currentI} A</span>
-                                                        </label>
-                                                        <input type="range" min="0.1" max="15" step="0.1" value={currentI} onChange={e => setCurrentI(e.target.value)} className="w-full accent-cyan-500" />
-                                                    </div>
-                                                    <div>
-                                                        <label className="flex justify-between text-slate-300 mb-1">
-                                                            <span>Resistencia (R):</span>
-                                                            <span className="font-mono text-cyan-300">{resistanceR} Ω</span>
-                                                        </label>
-                                                        <input type="range" min="1" max="100" step="1" value={resistanceR} onChange={e => setResistanceR(e.target.value)} className="w-full accent-cyan-500" />
-                                                    </div>
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-2 pt-2">
-                                                    <div className="bg-[#070b14] border border-cyan-500/30 rounded-xl p-3 text-center">
-                                                        <span className="text-[10px] text-slate-400 block">Voltaje (V)</span>
-                                                        <span className="text-base font-extrabold text-cyan-400 font-mono">{voltageV} V</span>
-                                                    </div>
-                                                    <div className="bg-[#070b14] border border-blue-500/30 rounded-xl p-3 text-center">
-                                                        <span className="text-[10px] text-slate-400 block">Potencia (P)</span>
-                                                        <span className="text-base font-extrabold text-blue-400 font-mono">{powerP} W</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Simulador 3: Ley de Snell (Óptica) */}
-                                            <div className="bg-[#0f1629] border border-slate-800 rounded-2xl p-6 space-y-4 shadow-lg">
-                                                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                                                    <h4 className="font-bold text-violet-400 text-sm">3. Ley de Snell (Óptica)</h4>
-                                                    <Formula tex="n_1 \sin\theta_1 = n_2 \sin\theta_2" />
-                                                </div>
-                                                <div className="space-y-3 text-xs">
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <div>
-                                                            <label className="text-slate-300 block mb-1">Medio 1 (n₁):</label>
-                                                            <select value={n1} onChange={e => setN1(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-slate-200">
-                                                                <option value="1.0">Aire (1.00)</option>
-                                                                <option value="1.33">Agua (1.33)</option>
-                                                                <option value="1.52">Vidrio (1.52)</option>
-                                                                <option value="2.42">Diamante (2.42)</option>
-                                                            </select>
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-slate-300 block mb-1">Medio 2 (n₂):</label>
-                                                            <select value={n2} onChange={e => setN2(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-slate-200">
-                                                                <option value="1.0">Aire (1.00)</option>
-                                                                <option value="1.33">Agua (1.33)</option>
-                                                                <option value="1.52">Vidrio (1.52)</option>
-                                                                <option value="2.42">Diamante (2.42)</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <label className="flex justify-between text-slate-300 mb-1">
-                                                            <span>Ángulo de Incidencia (θ₁):</span>
-                                                            <span className="font-mono text-violet-300">{theta1}°</span>
-                                                        </label>
-                                                        <input type="range" min="0" max="89" step="1" value={theta1} onChange={e => setTheta1(e.target.value)} className="w-full accent-violet-500" />
-                                                    </div>
-                                                </div>
-                                                <div className="bg-[#070b14] border border-violet-500/30 rounded-xl p-3.5 text-center">
-                                                    <span className="text-[11px] text-slate-400 block">Ángulo Refractado (θ₂)</span>
-                                                    <span className="text-base font-extrabold text-violet-400 font-mono">{theta2}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                    </main>
                 </div>
             );
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
 </html>
