@@ -11,6 +11,12 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
+        @keyframes dashFlow {
+            to { stroke-dashoffset: -36; }
+        }
+        .animate-current {
+            animation: dashFlow linear infinite;
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
@@ -25,10 +31,21 @@
 
         const TOPICS = [
             {
+                id: 'optica',
+                name: 'Luz y Óptica',
+                category: 'Óptica Geométrica',
+                description: 'Propagación de la luz, reflexión en espejos curvos, refracción y formación de imágenes.',
+                formulas: [
+                    { name: 'Ecuación de Espejos y Lentes', eq: '1 / f = (1 / do) + (1 / di)' },
+                    { name: 'Aumento Lateral', eq: 'M = hi / ho = -di / do' },
+                    { name: 'Ley de Snell', eq: 'n1 · sen(θ1) = n2 · sen(θ2)' }
+                ]
+            },
+            {
                 id: 'termodinamica',
                 name: 'Termodinámica',
                 category: 'Termodinámica',
-                description: 'Estudio del calor, el trabajo, la energía interna y las leyes que rigen los procesos térmicos.',
+                description: 'Estudio del calor, el trabajo mecánico, la energía interna y los procesos térmicos.',
                 formulas: [
                     { name: 'Primera Ley de la Termodinámica', eq: 'ΔU = Q - W' },
                     { name: 'Eficiencia Térmica (Carnot)', eq: 'η = 1 - (Tc / Th)' },
@@ -39,22 +56,11 @@
                 id: 'electromagnetismo',
                 name: 'Electromagnetismo',
                 category: 'Electromagnetismo',
-                description: 'Interacción entre cargas, campos eléctricos y magnéticos, circuitos y leyes fundamentales.',
+                description: 'Cargas eléctricas, corriente en circuitos, resistencia, potencial y campos magnéticos.',
                 formulas: [
-                    { name: 'Ley de Coulomb', eq: 'F = ke · |q1 · q2| / r²' },
                     { name: 'Ley de Ohm', eq: 'V = I · R' },
-                    { name: 'Fuerza Magnética', eq: 'F = q · (v × B)' }
-                ]
-            },
-            {
-                id: 'optica',
-                name: 'Luz y Óptica',
-                category: 'Óptica',
-                description: 'Propagación de la luz, reflexión, refracción, formación de imágenes en lentes y espejos.',
-                formulas: [
-                    { name: 'Ley de Snell', eq: 'n1 · sen(θ1) = n2 · sen(θ2)' },
-                    { name: 'Ecuación de Lentes y Espejos', eq: '1 / f = (1 / do) + (1 / di)' },
-                    { name: 'Índice de Refracción', eq: 'n = c / v' }
+                    { name: 'Potencia Eléctrica', eq: 'P = V · I = I² · R' },
+                    { name: 'Ley de Coulomb', eq: 'F = ke · |q1 · q2| / r²' }
                 ]
             }
         ];
@@ -64,15 +70,593 @@
             "Si el usuario pregunta sobre temas ajenos a la física, rechaza educadamente la consulta y recuérdale que solo respondes sobre Física. " +
             "Resuelve los problemas paso a paso con rigor científico y claridad. " +
             "REGLA DE FORMATO OBLIGATORIA: Nunca uses código LaTeX, signos de dólar ($), barras invertidas (\\Delta, \\frac), asteriscos dobles (**) ni almohadillas (###). " +
-            "Escribe todas las ecuaciones, variables y unidades usando texto plano limpio y símbolos Unicode normales (por ejemplo: ΔU = Q - W, θ, η, ×, ÷, ², ³, √, °C, J, N, T).";
+            "Escribe todas las ecuaciones, variables y unidades usando texto plano limpio y símbolos Unicode normales (por ejemplo: ΔU = Q - W, θ, η, ×, ÷, ², ³, √, °C, J, N, Ω, A, V).";
 
+        /* =========================================================
+           SIMULADOR 1: ÓPTICA GEOMÉTRICA (ESTILO PHET)
+           ========================================================= */
+        function OpticsSimulator({ onSendToTutor }) {
+            const [opticalElement, setOpticalElement] = useState('concave_mirror'); // concave_mirror | convex_mirror | converging_lens
+            const [radius, setRadius] = useState(180); // cm
+            const [objectDist, setObjectDist] = useState(140); // cm (do)
+            const [objectHeight, setObjectHeight] = useState(55); // cm (ho)
+            const [rayMode, setRayMode] = useState('principales'); // principales | marginales
+            const [showFocal, setShowFocal] = useState(true);
+            const [showVirtual, setShowVirtual] = useState(true);
+
+            // Cálculos físicos
+            // Para espejo cóncavo: f = +R/2 (frente al espejo, izquierda)
+            // Para espejo convexo: f = -R/2 (detrás del espejo, derecha)
+            // Para lente convergente: f = +R/2 (derecha de la lente)
+            const fAbs = radius / 2;
+            const fSigned = opticalElement === 'convex_mirror' ? -fAbs : fAbs;
+
+            // 1/f = 1/do + 1/di  =>  di = (do * f) / (do - f)
+            const denom = objectDist - fSigned;
+            const isAtFocus = Math.abs(denom) < 0.5;
+            const di = isAtFocus ? (fSigned > 0 ? 9999 : -9999) : (objectDist * fSigned) / denom;
+            const magnification = isAtFocus ? 0 : -di / objectDist;
+            const hi = magnification * objectHeight;
+
+            const isVirtual = di < 0;
+            const isInverted = magnification < 0;
+
+            // Coordenadas SVG (centro óptico en x = 430, eje óptico en y = 180)
+            const cx = 430;
+            const cy = 180;
+            const scale = 1.15;
+
+            const objX = cx - objectDist * scale;
+            const objTopY = cy - objectHeight * scale;
+
+            // En espejos: di > 0 está a la izquierda (cx - di), di < 0 está a la derecha (cx - di)
+            // En lentes: di > 0 está a la derecha (cx + di), di < 0 está a la izquierda (cx + di)
+            const imgX = opticalElement === 'converging_lens'
+                ? cx + di * scale
+                : cx - di * scale;
+            const imgTopY = cy - hi * scale;
+
+            const focalLeftX = cx - fAbs * scale;
+            const focalRightX = cx + fAbs * scale;
+
+            return (
+                <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <span>🔦</span> Simulador de Óptica Geométrica
+                            </h3>
+                            <p className="text-xs text-slate-400">Ajusta el elemento óptico, la posición del objeto y el radio de curvatura para observar el trazado de rayos.</p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                onClick={() => setOpticalElement('concave_mirror')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
+                                    opticalElement === 'concave_mirror'
+                                        ? 'bg-cyan-600 border-cyan-500 text-white'
+                                        : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                                }`}
+                            >
+                                Espejo Cóncavo ( ) )
+                            </button>
+                            <button
+                                onClick={() => setOpticalElement('convex_mirror')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
+                                    opticalElement === 'convex_mirror'
+                                        ? 'bg-cyan-600 border-cyan-500 text-white'
+                                        : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                                }`}
+                            >
+                                Espejo Convexo ( ( )
+                            </button>
+                            <button
+                                onClick={() => setOpticalElement('converging_lens')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
+                                    opticalElement === 'converging_lens'
+                                        ? 'bg-cyan-600 border-cyan-500 text-white'
+                                        : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                                }`}
+                            >
+                                Lente Convergente ( () )
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Lienzo SVG tipo PhET */}
+                    <div className="w-full overflow-x-auto bg-slate-950 border border-slate-800 rounded-xl">
+                        <svg viewBox="0 0 760 360" className="w-full min-w-[640px] h-80 select-none">
+                            {/* Cuadrícula sutil */}
+                            <defs>
+                                <pattern id="optGrid" width="30" height="30" patternUnits="userSpaceOnUse">
+                                    <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#1e293b" strokeWidth="0.8" />
+                                </pattern>
+                            </defs>
+                            <rect width="760" height="360" fill="url(#optGrid)" />
+
+                            {/* Eje óptico */}
+                            <line x1="10" y1={cy} x2="750" y2={cy} stroke="#64748b" strokeWidth="1.5" strokeDasharray="6 4" />
+
+                            {/* Elemento óptico central */}
+                            {opticalElement === 'concave_mirror' && (
+                                <path
+                                    d={`M ${cx - 12} ${cy - 110} Q ${cx + 18} ${cy} ${cx - 12} ${cy + 110}`}
+                                    fill="none"
+                                    stroke="#38bdf8"
+                                    strokeWidth="5"
+                                    strokeLinecap="round"
+                                />
+                            )}
+                            {opticalElement === 'convex_mirror' && (
+                                <path
+                                    d={`M ${cx + 12} ${cy - 110} Q ${cx - 18} ${cy} ${cx + 12} ${cy + 110}`}
+                                    fill="none"
+                                    stroke="#38bdf8"
+                                    strokeWidth="5"
+                                    strokeLinecap="round"
+                                />
+                            )}
+                            {opticalElement === 'converging_lens' && (
+                                <path
+                                    d={`M ${cx} ${cy - 115} Q ${cx + 24} ${cy} ${cx} ${cy + 115} Q ${cx - 24} ${cy} ${cx} ${cy - 115}`}
+                                    fill="rgba(56, 189, 248, 0.2)"
+                                    stroke="#38bdf8"
+                                    strokeWidth="3"
+                                />
+                            )}
+
+                            {/* Puntos focales */}
+                            {showFocal && (
+                                <>
+                                    <g transform={`translate(${focalLeftX}, ${cy})`}>
+                                        <circle r="5" fill="#facc15" stroke="#0f172a" strokeWidth="1.5" />
+                                        <text y="18" textAnchor="middle" fill="#facc15" fontSize="11" fontWeight="bold">F</text>
+                                    </g>
+                                    <g transform={`translate(${focalRightX}, ${cy})`}>
+                                        <circle r="5" fill="#facc15" stroke="#0f172a" strokeWidth="1.5" />
+                                        <text y="18" textAnchor="middle" fill="#facc15" fontSize="11" fontWeight="bold">F'</text>
+                                    </g>
+                                </>
+                            )}
+
+                            {/* Trazado de rayos */}
+                            {!isAtFocus && (
+                                <g strokeWidth="1.8" fill="none">
+                                    {/* Rayo 1: Paralelo al eje -> pasa por el foco */}
+                                    <line x1={objX} y1={objTopY} x2={cx} y2={objTopY} stroke="#f87171" />
+                                    {opticalElement === 'concave_mirror' && (
+                                        <>
+                                            <line x1={cx} y1={objTopY} x2={Math.min(imgX, 20)} y2={objTopY + ((cy - objTopY) / (focalLeftX - cx)) * (Math.min(imgX, 20) - cx)} stroke="#f87171" />
+                                            {isVirtual && showVirtual && (
+                                                <line x1={cx} y1={objTopY} x2={imgX} y2={imgTopY} stroke="#f87171" strokeDasharray="5 4" opacity="0.7" />
+                                            )}
+                                        </>
+                                    )}
+                                    {opticalElement === 'convex_mirror' && (
+                                        <>
+                                            <line x1={cx} y1={objTopY} x2={20} y2={objTopY + ((objTopY - cy) / (cx - focalRightX)) * (20 - cx)} stroke="#f87171" />
+                                            {showVirtual && (
+                                                <line x1={cx} y1={objTopY} x2={imgX} y2={imgTopY} stroke="#f87171" strokeDasharray="5 4" opacity="0.7" />
+                                            )}
+                                        </>
+                                    )}
+                                    {opticalElement === 'converging_lens' && (
+                                        <>
+                                            <line x1={cx} y1={objTopY} x2={Math.max(imgX, 740)} y2={objTopY + ((cy - objTopY) / (focalRightX - cx)) * (Math.max(imgX, 740) - cx)} stroke="#f87171" />
+                                            {isVirtual && showVirtual && (
+                                                <line x1={cx} y1={objTopY} x2={imgX} y2={imgTopY} stroke="#f87171" strokeDasharray="5 4" opacity="0.7" />
+                                            )}
+                                        </>
+                                    )}
+
+                                    {/* Rayo 2: Al vértice / centro óptico */}
+                                    <line x1={objX} y1={objTopY} x2={cx} y2={cy} stroke="#34d399" />
+                                    {opticalElement === 'converging_lens' ? (
+                                        <>
+                                            <line x1={cx} y1={cy} x2={Math.max(imgX, 740)} y2={cy + ((cy - objTopY) / (cx - objX)) * (Math.max(imgX, 740) - cx)} stroke="#34d399" />
+                                            {isVirtual && showVirtual && (
+                                                <line x1={cx} y1={cy} x2={imgX} y2={imgTopY} stroke="#34d399" strokeDasharray="5 4" opacity="0.7" />
+                                            )}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <line x1={cx} y1={cy} x2={20} y2={cy + ((cy - objTopY) / (cx - objX)) * (cx - 20)} stroke="#34d399" />
+                                            {isVirtual && showVirtual && (
+                                                <line x1={cx} y1={cy} x2={imgX} y2={imgTopY} stroke="#34d399" strokeDasharray="5 4" opacity="0.7" />
+                                            )}
+                                        </>
+                                    )}
+
+                                    {/* Rayo 3 marginal adicional */}
+                                    {rayMode === 'marginales' && (
+                                        <>
+                                            <line x1={objX} y1={objTopY} x2={cx} y2={cy - 85} stroke="#fbbf24" opacity="0.85" />
+                                            <line x1={cx} y1={cy - 85} x2={imgX} y2={imgTopY} stroke="#fbbf24" strokeDasharray={isVirtual ? "4 4" : "none"} opacity="0.85" />
+                                        </>
+                                    )}
+                                </g>
+                            )}
+
+                            {/* Objeto (Lápiz estilizado) */}
+                            <g>
+                                <line x1={objX} y1={cy} x2={objX} y2={objTopY} stroke="#fbbf24" strokeWidth="6" strokeLinecap="round" />
+                                <polygon points={`${objX - 5},${objTopY + 8} ${objX + 5},${objTopY + 8} ${objX},${objTopY - 4}`} fill="#fde047" />
+                                <rect x={objX - 3} y={cy - 7} width="6" height="7" fill="#f472b6" rx="1" />
+                                <text x={objX} y={cy + 18} textAnchor="middle" fill="#fbbf24" fontSize="11" fontWeight="bold">Objeto</text>
+                            </g>
+
+                            {/* Imagen formada */}
+                            {!isAtFocus && imgX > 15 && imgX < 745 && (showVirtual || !isVirtual) && (
+                                <g opacity={isVirtual ? 0.65 : 0.95}>
+                                    <line
+                                        x1={imgX}
+                                        y1={cy}
+                                        x2={imgX}
+                                        y2={imgTopY}
+                                        stroke={isVirtual ? '#a78bfa' : '#38bdf8'}
+                                        strokeWidth="5"
+                                        strokeDasharray={isVirtual ? '5 3' : 'none'}
+                                        strokeLinecap="round"
+                                    />
+                                    <circle cx={imgX} cy={imgTopY} r="4" fill={isVirtual ? '#a78bfa' : '#38bdf8'} />
+                                    <text x={imgX} y={isInverted ? imgTopY + 16 : imgTopY - 10} textAnchor="middle" fill={isVirtual ? '#c4b5fd' : '#7dd3fc'} fontSize="11" fontWeight="bold">
+                                        Imagen ({isVirtual ? 'Virtual' : 'Real'})
+                                    </text>
+                                </g>
+                            )}
+                        </svg>
+                    </div>
+
+                    {/* Panel de controles estilo PhET */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <div>
+                            <div className="flex justify-between text-xs mb-1">
+                                <span className="text-slate-400">Distancia Objeto (do)</span>
+                                <span className="text-cyan-400 font-mono font-bold">{objectDist} cm</span>
+                            </div>
+                            <input
+                                type="range"
+                                min="30"
+                                max="260"
+                                value={objectDist}
+                                onChange={(e) => setObjectDist(Number(e.target.value))}
+                                className="w-full accent-cyan-500"
+                            />
+                        </div>
+
+                        <div>
+                            <div className="flex justify-between text-xs mb-1">
+                                <span className="text-slate-400">Radio de Curvatura (R)</span>
+                                <span className="text-cyan-400 font-mono font-bold">{radius} cm (f = {fSigned} cm)</span>
+                            </div>
+                            <input
+                                type="range"
+                                min="80"
+                                max="240"
+                                step="10"
+                                value={radius}
+                                onChange={(e) => setRadius(Number(e.target.value))}
+                                className="w-full accent-cyan-500"
+                            />
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <label className="flex items-center gap-1.5 text-slate-300 cursor-pointer">
+                                <input type="checkbox" checked={showFocal} onChange={(e) => setShowFocal(e.target.checked)} className="accent-cyan-500" />
+                                Puntos Focales
+                            </label>
+                            <label className="flex items-center gap-1.5 text-slate-300 cursor-pointer">
+                                <input type="checkbox" checked={showVirtual} onChange={(e) => setShowVirtual(e.target.checked)} className="accent-cyan-500" />
+                                Imagen Virtual
+                            </label>
+                            <select
+                                value={rayMode}
+                                onChange={(e) => setRayMode(e.target.value)}
+                                className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-slate-200"
+                            >
+                                <option value="principales">Rayos Principales</option>
+                                <option value="marginales">Rayos Marginales</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Resultados en vivo + botón al Tutor IA */}
+                    <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-950/70 p-4 rounded-xl border border-slate-800/80">
+                        <div className="flex flex-wrap gap-6 text-xs">
+                            <div>
+                                <span className="text-slate-400 block">Distancia Imagen (di)</span>
+                                <span className="text-base font-mono font-bold text-white">
+                                    {isAtFocus ? '∞ (En el foco)' : `${di.toFixed(1)} cm`}
+                                </span>
+                            </div>
+                            <div>
+                                <span className="text-slate-400 block">Aumento (M)</span>
+                                <span className="text-base font-mono font-bold text-cyan-400">
+                                    {isAtFocus ? 'Indefinido' : `${magnification.toFixed(2)}×`}
+                                </span>
+                            </div>
+                            <div>
+                                <span className="text-slate-400 block">Naturaleza de Imagen</span>
+                                <span className="text-sm font-semibold text-emerald-400">
+                                    {isAtFocus
+                                        ? 'Sin formación de imagen'
+                                        : `${isVirtual ? 'Virtual' : 'Real'} y ${isInverted ? 'Invertida' : 'Derecha'}`}
+                                </span>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() =>
+                                onSendToTutor(
+                                    `Analiza paso a paso este caso del simulador de Óptica Geométrica:\n` +
+                                    `- Elemento: ${opticalElement === 'concave_mirror' ? 'Espejo cóncavo' : opticalElement === 'convex_mirror' ? 'Espejo convexo' : 'Lente convergente'}\n` +
+                                    `- Radio de curvatura R = ${radius} cm (distancia focal f = ${fSigned} cm)\n` +
+                                    `- Distancia del objeto do = ${objectDist} cm\n` +
+                                    `- Distancia de la imagen obtenida di = ${isAtFocus ? 'infinito' : di.toFixed(2) + ' cm'}\n` +
+                                    `Explica por qué la imagen resulta ${isVirtual ? 'virtual' : 'real'} y ${isInverted ? 'invertida' : 'derecha'}.`
+                                )
+                            }
+                            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-xl transition"
+                        >
+                            🤖 Explicar con Tutor IA
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        /* =========================================================
+           SIMULADOR 2: TERMODINÁMICA (PISTÓN Y PRIMERA LEY)
+           ========================================================= */
+        function ThermoSimulator({ onSendToTutor }) {
+            const [heatQ, setHeatQ] = useState(500); // Joules
+            const [workW, setWorkW] = useState(200); // Joules
+            const deltaU = heatQ - workW;
+
+            // Altura visual del pistón según el trabajo realizado (expansión/compresión)
+            const pistonOffset = Math.max(-35, Math.min(45, workW / 12));
+            const tempColor = deltaU > 200 ? '#ef4444' : deltaU > 0 ? '#f97316' : deltaU === 0 ? '#eab308' : '#38bdf8';
+
+            return (
+                <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+                    <div>
+                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                            <span>🔥</span> Simulador de Termodinámica (Primera Ley: ΔU = Q - W)
+                        </h3>
+                        <p className="text-xs text-slate-400">Modifica el calor transferido (Q) y el trabajo realizado por el sistema (W) para ver la variación de energía interna.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        {/* Cilindro y pistón SVG */}
+                        <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex justify-center">
+                            <svg viewBox="0 0 320 220" className="w-full max-w-xs h-48">
+                                {/* Gas interior */}
+                                <rect
+                                    x="95"
+                                    y={80 - pistonOffset}
+                                    width="130"
+                                    height={110 + pistonOffset}
+                                    fill={tempColor}
+                                    opacity="0.22"
+                                />
+                                {/* Partículas animadas */}
+                                <circle cx="125" cy={145 - pistonOffset / 2} r="4" fill={tempColor} />
+                                <circle cx="160" cy={130 - pistonOffset / 2} r="4" fill={tempColor} />
+                                <circle cx="195" cy={155 - pistonOffset / 2} r="4" fill={tempColor} />
+                                <circle cx="145" cy={168 - pistonOffset / 2} r="4" fill={tempColor} />
+                                <circle cx="180" cy={125 - pistonOffset / 2} r="4" fill={tempColor} />
+
+                                {/* Paredes del cilindro */}
+                                <polyline points="95,35 95,190 225,190 225,35" fill="none" stroke="#94a3b8" strokeWidth="4" />
+
+                                {/* Pistón móvil */}
+                                <rect x="97" y={68 - pistonOffset} width="126" height="12" fill="#cbd5e1" rx="2" />
+                                <rect x="154" y={20 - pistonOffset} width="12" height="48" fill="#64748b" />
+
+                                {/* Flecha de Calor Q */}
+                                <text x="160" y="210" textAnchor="middle" fill="#fb923c" fontSize="11" fontWeight="bold">
+                                    {heatQ >= 0 ? `▲ Entra Calor Q = +${heatQ} J` : `▼ Sale Calor Q = ${heatQ} J`}
+                                </text>
+                            </svg>
+                        </div>
+
+                        {/* Controles */}
+                        <div className="space-y-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                            <div>
+                                <div className="flex justify-between text-xs mb-1">
+                                    <span className="text-slate-400">Calor Netamente Absorvido (Q)</span>
+                                    <span className="text-orange-400 font-mono font-bold">{heatQ} J</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="-600"
+                                    max="1000"
+                                    step="25"
+                                    value={heatQ}
+                                    onChange={(e) => setHeatQ(Number(e.target.value))}
+                                    className="w-full accent-orange-500"
+                                />
+                            </div>
+
+                            <div>
+                                <div className="flex justify-between text-xs mb-1">
+                                    <span className="text-slate-400">Trabajo Realizado por el Gas (W)</span>
+                                    <span className="text-cyan-400 font-mono font-bold">{workW} J</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="-400"
+                                    max="600"
+                                    step="25"
+                                    value={workW}
+                                    onChange={(e) => setWorkW(Number(e.target.value))}
+                                    className="w-full accent-cyan-500"
+                                />
+                            </div>
+
+                            <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                                <div>
+                                    <span className="text-xs text-slate-400 block">Energía Interna (ΔU = Q - W)</span>
+                                    <span className="text-lg font-mono font-bold text-white">{deltaU} J</span>
+                                </div>
+                                <button
+                                    onClick={() =>
+                                        onSendToTutor(
+                                            `Explica paso a paso este proceso termodinámico:\n` +
+                                            `- Calor Q = ${heatQ} J\n` +
+                                            `- Trabajo W = ${workW} J\n` +
+                                            `- Variación de energía interna ΔU = ${deltaU} J\n` +
+                                            `Indica si la temperatura del gas aumenta o disminuye y si el gas se expande o comprime.`
+                                        )
+                                    }
+                                    className="px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-xl transition"
+                                >
+                                    🤖 Analizar con IA
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        /* =========================================================
+           SIMULADOR 3: ELECTROMAGNETISMO (CIRCUITO LEY DE OHM)
+           ========================================================= */
+        function ElectroSimulator({ onSendToTutor }) {
+            const [voltage, setVoltage] = useState(12); // V
+            const [resistance, setResistance] = useState(6); // Ohm
+            const current = voltage / resistance; // A
+            const power = voltage * current; // W
+
+            // Velocidad animación de electrones
+            const animDuration = Math.max(0.25, Math.min(4, 2 / Math.max(0.1, current)));
+
+            return (
+                <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-4">
+                    <div>
+                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                            <span>⚡</span> Simulador de Circuito Eléctrico (Ley de Ohm: V = I · R)
+                        </h3>
+                        <p className="text-xs text-slate-400">Ajusta el voltaje de la fuente y la resistencia para observar el flujo de corriente e intensidad.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        {/* Circuito animado SVG */}
+                        <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex justify-center">
+                            <svg viewBox="0 0 340 210" className="w-full max-w-xs h-48">
+                                {/* Cable base */}
+                                <rect x="55" y="35" width="230" height="140" rx="14" fill="none" stroke="#334155" strokeWidth="6" />
+                                {/* Flujo de corriente animado */}
+                                <rect
+                                    x="55"
+                                    y="35"
+                                    width="230"
+                                    height="140"
+                                    rx="14"
+                                    fill="none"
+                                    stroke="#38bdf8"
+                                    strokeWidth="4"
+                                    strokeDasharray="8 10"
+                                    className="animate-current"
+                                    style={{ animationDuration: `${animDuration}s` }}
+                                />
+
+                                {/* Fuente de Voltaje (izquierda) */}
+                                <rect x="32" y="78" width="46" height="54" rx="8" fill="#0f172a" stroke="#facc15" strokeWidth="2" />
+                                <text x="55" y="102" textAnchor="middle" fill="#facc15" fontSize="11" fontWeight="bold">{voltage} V</text>
+                                <text x="55" y="118" textAnchor="middle" fill="#94a3b8" fontSize="9">Fuente</text>
+
+                                {/* Resistencia (derecha) */}
+                                <rect x="260" y="75" width="50" height="60" rx="8" fill="#0f172a" stroke="#f87171" strokeWidth="2" />
+                                <text x="285" y="102" textAnchor="middle" fill="#f87171" fontSize="11" fontWeight="bold">{resistance} Ω</text>
+                                <text x="285" y="118" textAnchor="middle" fill="#94a3b8" fontSize="9">Carga R</text>
+
+                                {/* Amperímetro arriba */}
+                                <rect x="125" y="20" width="90" height="28" rx="14" fill="#0f172a" stroke="#34d399" strokeWidth="2" />
+                                <text x="170" y="38" textAnchor="middle" fill="#34d399" fontSize="11" fontWeight="bold">
+                                    I = {current.toFixed(2)} A
+                                </text>
+                            </svg>
+                        </div>
+
+                        {/* Controles */}
+                        <div className="space-y-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                            <div>
+                                <div className="flex justify-between text-xs mb-1">
+                                    <span className="text-slate-400">Voltaje de Fuente (V)</span>
+                                    <span className="text-yellow-400 font-mono font-bold">{voltage} V</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="1"
+                                    max="48"
+                                    step="1"
+                                    value={voltage}
+                                    onChange={(e) => setVoltage(Number(e.target.value))}
+                                    className="w-full accent-yellow-400"
+                                />
+                            </div>
+
+                            <div>
+                                <div className="flex justify-between text-xs mb-1">
+                                    <span className="text-slate-400">Resistencia Eléctrica (R)</span>
+                                    <span className="text-red-400 font-mono font-bold">{resistance} Ω</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="1"
+                                    max="50"
+                                    step="1"
+                                    value={resistance}
+                                    onChange={(e) => setResistance(Number(e.target.value))}
+                                    className="w-full accent-red-500"
+                                />
+                            </div>
+
+                            <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-2">
+                                <div className="flex gap-4">
+                                    <div>
+                                        <span className="text-xs text-slate-400 block">Corriente (I)</span>
+                                        <span className="text-base font-mono font-bold text-emerald-400">{current.toFixed(2)} A</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-xs text-slate-400 block">Potencia (P)</span>
+                                        <span className="text-base font-mono font-bold text-cyan-400">{power.toFixed(2)} W</span>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() =>
+                                        onSendToTutor(
+                                            `Resuelve y explica este circuito de Ley de Ohm:\n` +
+                                            `- Voltaje aplicado V = ${voltage} V\n` +
+                                            `- Resistencia R = ${resistance} Ω\n` +
+                                            `- Corriente calculada I = ${current.toFixed(2)} A\n` +
+                                            `- Potencia disipada P = ${power.toFixed(2)} W`
+                                        )
+                                    }
+                                    className="px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-xl transition"
+                                >
+                                    🤖 Analizar con IA
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        /* =========================================================
+           APLICACIÓN PRINCIPAL
+           ========================================================= */
         function App() {
             const [activeTab, setActiveTab] = useState('chat');
-            const [selectedTopic, setSelectedTopic] = useState('termodinamica');
+            const [selectedTopic, setSelectedTopic] = useState('optica');
 
             const [chats, setChats] = useState(() => {
                 try {
-                    const saved = localStorage.getItem('fisica_master_chats_v2');
+                    const saved = localStorage.getItem('fisica_master_chats_v3');
                     if (saved) {
                         const parsed = JSON.parse(saved);
                         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -83,7 +667,7 @@
                     title: 'Nueva Sesión de Física',
                     messages: [{
                         role: 'assistant',
-                        content: '¡Hola! Soy Física Master IA, tu tutor especializado exclusivamente en Física (Termodinámica, Electromagnetismo y Óptica). Escribe tu duda, graba un audio o adjunta una foto de tu ejercicio para resolverlo paso a paso.'
+                        content: '¡Hola! Soy Física Master IA, tu tutor especializado exclusivamente en Física (Termodinámica, Electromagnetismo y Óptica). Escribe tu duda, graba un audio, adjunta una foto o prueba los simuladores interactivos.'
                     }]
                 }];
             });
@@ -110,7 +694,7 @@
                             audio: m.audio ? { data: m.audio.data, mimeType: m.audio.mimeType } : null
                         }))
                     }));
-                    localStorage.setItem('fisica_master_chats_v2', JSON.stringify(serializableChats));
+                    localStorage.setItem('fisica_master_chats_v3', JSON.stringify(serializableChats));
                 } catch (e) {}
             }, [chats]);
 
@@ -203,16 +787,19 @@
                 setSelectedAudio(null);
             };
 
-            const handleSendMessage = async (e) => {
-                e.preventDefault();
-                if (isRecording) stopRecording();
-                if (!inputMessage.trim() && !selectedImage && !selectedAudio) return;
+            const sendPromptDirectly = async (customText) => {
+                setActiveTab('chat');
+                await processOutgoingMessage(customText, null, null);
+            };
+
+            const processOutgoingMessage = async (textContent, imgData, audioData) => {
+                if (!textContent.trim() && !imgData && !audioData) return;
 
                 const userMsg = {
                     role: 'user',
-                    content: inputMessage.trim(),
-                    image: selectedImage,
-                    audio: selectedAudio
+                    content: textContent.trim(),
+                    image: imgData,
+                    audio: audioData
                 };
 
                 const updatedHistory = [...currentChat.messages, userMsg];
@@ -314,6 +901,12 @@
                 }
             };
 
+            const handleSendMessage = async (e) => {
+                e.preventDefault();
+                if (isRecording) stopRecording();
+                await processOutgoingMessage(inputMessage, selectedImage, selectedAudio);
+            };
+
             const createNewChat = () => {
                 const newId = 'chat_' + Date.now();
                 const newChatObj = {
@@ -339,10 +932,12 @@
                 }
             };
 
+            const activeTopicObj = TOPICS.find(t => t.id === selectedTopic) || TOPICS[0];
+
             return (
                 <div className="flex h-screen overflow-hidden bg-slate-950 text-slate-100">
                     {/* Barra lateral */}
-                    <aside className="w-80 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0">
+                    <aside className="w-72 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0">
                         <div className="p-4 border-b border-slate-800">
                             <h1 className="font-bold text-lg text-cyan-400 flex items-center gap-2">
                                 <span className="p-1.5 bg-cyan-500/10 rounded-lg">⚛️</span>
@@ -429,46 +1024,48 @@
                         </header>
 
                         {activeTab === 'formulas' ? (
-                            <div className="flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full">
-                                <div className="mb-6">
-                                    <h2 className="text-2xl font-bold text-white mb-1">Bloques de Física Exclusivos</h2>
-                                    <p className="text-slate-400 text-sm">Termodinámica, Electromagnetismo y Óptica con ecuaciones clave.</p>
+                            <div className="flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full space-y-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white mb-1">Laboratorio Interactivo y Fórmulas</h2>
+                                    <p className="text-slate-400 text-sm">Selecciona un área para experimentar con su simulador visual y consultar sus ecuaciones fundamentales.</p>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                                {/* Selector de rama de la física */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     {TOPICS.map(t => (
                                         <div
                                             key={t.id}
                                             onClick={() => setSelectedTopic(t.id)}
-                                            className={`p-5 rounded-2xl border cursor-pointer transition ${
+                                            className={`p-4 rounded-2xl border cursor-pointer transition ${
                                                 selectedTopic === t.id
                                                     ? 'bg-cyan-950/35 border-cyan-500 shadow-lg shadow-cyan-950/40'
                                                     : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'
                                             }`}
                                         >
                                             <span className="text-xs text-cyan-400 font-semibold uppercase">{t.category}</span>
-                                            <h3 className="text-lg font-bold text-white mt-1 mb-2">{t.name}</h3>
+                                            <h3 className="text-base font-bold text-white mt-1 mb-1">{t.name}</h3>
                                             <p className="text-slate-400 text-xs leading-relaxed">{t.description}</p>
                                         </div>
                                     ))}
                                 </div>
 
-                                {(() => {
-                                    const topicData = TOPICS.find(t => t.id === selectedTopic) || TOPICS[0];
-                                    return (
-                                        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6">
-                                            <h3 className="text-xl font-bold text-white mb-4">Fórmulas Clave de {topicData.name}</h3>
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                {topicData.formulas.map((f, i) => (
-                                                    <div key={i} className="p-4 bg-slate-950 rounded-xl border border-slate-800/80">
-                                                        <div className="text-sm font-medium text-slate-300 mb-2">{f.name}</div>
-                                                        <div className="text-cyan-400 font-mono text-base">{f.eq}</div>
-                                                    </div>
-                                                ))}
+                                {/* Simulador interactivo correspondiente */}
+                                {selectedTopic === 'optica' && <OpticsSimulator onSendToTutor={sendPromptDirectly} />}
+                                {selectedTopic === 'termodinamica' && <ThermoSimulator onSendToTutor={sendPromptDirectly} />}
+                                {selectedTopic === 'electromagnetismo' && <ElectroSimulator onSendToTutor={sendPromptDirectly} />}
+
+                                {/* Tarjetas de fórmulas */}
+                                <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5">
+                                    <h3 className="text-base font-bold text-white mb-3">Fórmulas Clave de {activeTopicObj.name}</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        {activeTopicObj.formulas.map((f, i) => (
+                                            <div key={i} className="p-4 bg-slate-950 rounded-xl border border-slate-800/80">
+                                                <div className="text-xs font-medium text-slate-400 mb-1.5">{f.name}</div>
+                                                <div className="text-cyan-400 font-mono text-base font-semibold">{f.eq}</div>
                                             </div>
-                                        </div>
-                                    );
-                                })()}
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         ) : (
                             <>
