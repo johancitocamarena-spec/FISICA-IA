@@ -31,9 +31,15 @@
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
-        
-        const DEFAULT_API_KEY = "AQ.Ab8RN6JyXFXxjtqRu3VBkjyjkPT98pWfnJxwfcSPms16ioCj_w";
+
+        // 👉 PEGA AQUÍ TU API KEY DE GOOGLE AI STUDIO 👈
+        const DEFAULT_API_KEY = "";
         const MODEL_NAME = "gemini-3.8-flash";
+        const MODEL_CANDIDATES = Array.from(new Set([
+            MODEL_NAME,
+            "gemini-2.0-flash",
+            "gemini-2.5-flash"
+        ].filter(Boolean)));
 
         /* =========================================================
            ILUSTRACIONES VECTORIALES PARA DAR VIDA A CADA ÁREA
@@ -42,7 +48,6 @@
             if (id === 'optica') {
                 return (
                     <svg viewBox="0 0 220 90" className="w-full h-24 rounded-xl bg-gradient-to-r from-sky-50 to-indigo-50 border border-sky-100">
-                        {/* Prisma dispersando luz blanca en arcoíris */}
                         <line x1="15" y1="55" x2="88" y2="42" stroke="#f59e0b" strokeWidth="3.5" strokeLinecap="round" />
                         <polygon points="105,15 72,75 138,75" fill="#e0f2fe" stroke="#0284c7" strokeWidth="2.5" strokeLinejoin="round" />
                         <line x1="122" y1="42" x2="205" y2="26" stroke="#ef4444" strokeWidth="2.5" />
@@ -56,15 +61,12 @@
             if (id === 'termodinamica') {
                 return (
                     <svg viewBox="0 0 220 90" className="w-full h-24 rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100">
-                        {/* Termómetro + partículas energéticas */}
                         <rect x="42" y="14" width="14" height="46" rx="7" fill="#ffffff" stroke="#ea580c" strokeWidth="2.5" />
                         <circle cx="49" cy="66" r="12" fill="#ef4444" stroke="#ea580c" strokeWidth="2.5" />
                         <rect x="46" y="28" width="6" height="34" fill="#ef4444" rx="3" />
-                        {/* Ondas de calor */}
                         <path d="M 85 65 Q 92 52 85 40 Q 78 28 85 16" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" />
                         <path d="M 105 65 Q 112 52 105 40 Q 98 28 105 16" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
                         <path d="M 125 65 Q 132 52 125 40 Q 118 28 125 16" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" />
-                        {/* Moléculas */}
                         <circle cx="165" cy="30" r="6" fill="#f97316" />
                         <circle cx="188" cy="48" r="5" fill="#ef4444" />
                         <circle cx="160" cy="62" r="7" fill="#eab308" />
@@ -74,13 +76,11 @@
             }
             return (
                 <svg viewBox="0 0 220 90" className="w-full h-24 rounded-xl bg-gradient-to-r from-amber-50 to-blue-50 border border-blue-100">
-                    {/* Imán en herradura y líneas de campo */}
                     <path d="M 55 25 L 85 25 A 20 20 0 0 1 85 65 L 55 65" fill="none" stroke="#2563eb" strokeWidth="12" strokeLinecap="butt" />
                     <rect x="45" y="19" width="18" height="12" fill="#ef4444" rx="2" />
                     <rect x="45" y="59" width="18" height="12" fill="#1d4ed8" rx="2" />
                     <text x="54" y="28" textAnchor="middle" fill="#ffffff" fontSize="8" fontWeight="bold">N</text>
                     <text x="54" y="68" textAnchor="middle" fill="#ffffff" fontSize="8" fontWeight="bold">S</text>
-                    {/* Rayo eléctrico */}
                     <polygon points="155,14 135,46 152,46 144,76 174,40 156,40" fill="#facc15" stroke="#ca8a04" strokeWidth="2" strokeLinejoin="round" />
                 </svg>
             );
@@ -142,7 +142,7 @@
             const [opticalElement, setOpticalElement] = useState('concave_mirror');
             const [radius, setRadius] = useState(180);
             const [objectDist, setObjectDist] = useState(140);
-            const [objectHeight, setObjectHeight] = useState(55);
+            const [objectHeight] = useState(55);
             const [rayMode, setRayMode] = useState('principales');
             const [showFocal, setShowFocal] = useState(true);
             const [showVirtual, setShowVirtual] = useState(true);
@@ -221,7 +221,6 @@
                         </div>
                     </div>
 
-                    {/* Lienzo SVG estilo PhET en fondo claro */}
                     <div className="w-full overflow-x-auto bg-white border-2 border-slate-200 rounded-2xl shadow-inner">
                         <svg viewBox="0 0 760 360" className="w-full min-w-[640px] h-80 select-none">
                             <defs>
@@ -231,10 +230,8 @@
                             </defs>
                             <rect width="760" height="360" fill="url(#optGridLight)" />
 
-                            {/* Eje óptico */}
                             <line x1="10" y1={cy} x2="750" y2={cy} stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="6 4" />
 
-                            {/* Elemento óptico central */}
                             {opticalElement === 'concave_mirror' && (
                                 <path
                                     d={`M ${cx - 12} ${cy - 110} Q ${cx + 18} ${cy} ${cx - 12} ${cy + 110}`}
@@ -262,7 +259,6 @@
                                 />
                             )}
 
-                            {/* Puntos focales */}
                             {showFocal && (
                                 <>
                                     <g transform={`translate(${focalLeftX}, ${cy})`}>
@@ -276,10 +272,8 @@
                                 </>
                             )}
 
-                            {/* Trazado de rayos */}
                             {!isAtFocus && (
                                 <g strokeWidth="2" fill="none">
-                                    {/* Rayo 1: Paralelo al eje */}
                                     <line x1={objX} y1={objTopY} x2={cx} y2={objTopY} stroke="#ef4444" />
                                     {opticalElement === 'concave_mirror' && (
                                         <>
@@ -306,7 +300,6 @@
                                         </>
                                     )}
 
-                                    {/* Rayo 2: Al centro óptico */}
                                     <line x1={objX} y1={objTopY} x2={cx} y2={cy} stroke="#10b981" />
                                     {opticalElement === 'converging_lens' ? (
                                         <>
@@ -324,7 +317,6 @@
                                         </>
                                     )}
 
-                                    {/* Rayo 3 marginal */}
                                     {rayMode === 'marginales' && (
                                         <>
                                             <line x1={objX} y1={objTopY} x2={cx} y2={cy - 85} stroke="#f59e0b" />
@@ -334,7 +326,6 @@
                                 </g>
                             )}
 
-                            {/* Objeto (Lápiz) */}
                             <g>
                                 <rect x={objX - 14} y={objTopY - 8} width="28" height={cy - objTopY + 12} fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.5" rx="4" />
                                 <line x1={objX} y1={cy} x2={objX} y2={objTopY} stroke="#f59e0b" strokeWidth="7" strokeLinecap="round" />
@@ -343,7 +334,6 @@
                                 <text x={objX} y={cy + 22} textAnchor="middle" fill="#b45309" fontSize="11" fontWeight="bold">Objeto</text>
                             </g>
 
-                            {/* Imagen formada */}
                             {!isAtFocus && imgX > 15 && imgX < 745 && (showVirtual || !isVirtual) && (
                                 <g opacity={isVirtual ? 0.6 : 0.95}>
                                     <line
@@ -365,7 +355,6 @@
                         </svg>
                     </div>
 
-                    {/* Panel de controles */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
                         <div>
                             <div className="flex justify-between text-xs mb-1">
@@ -418,7 +407,6 @@
                         </div>
                     </div>
 
-                    {/* Resultados + Tutor IA */}
                     <div className="flex flex-wrap items-center justify-between gap-4 bg-sky-50/70 p-4 rounded-xl border border-sky-100">
                         <div className="flex flex-wrap gap-6 text-xs">
                             <div>
@@ -900,27 +888,44 @@
                         };
                     });
 
-                    const response = await fetch(
-                        `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`,
-                        {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                system_instruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
-                                contents
-                            })
-                        }
-                    );
+                    let aiText = null;
+                    let lastErrorMsg = "Error en la respuesta de Gemini.";
 
-                    const data = await response.json();
-                    if (!response.ok) {
-                        const errMsg = data?.error?.message || 'Error en la respuesta de Gemini.';
-                        throw new Error(errMsg);
+                    for (const modelId of MODEL_CANDIDATES) {
+                        const response = await fetch(
+                            `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`,
+                            {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    system_instruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+                                    contents
+                                })
+                            }
+                        );
+
+                        const data = await response.json();
+                        if (response.ok) {
+                            aiText =
+                                data.candidates?.[0]?.content?.parts?.[0]?.text ||
+                                "No se recibió contenido de respuesta.";
+                            break;
+                        }
+
+                        lastErrorMsg = data?.error?.message || `Error HTTP ${response.status} en ${modelId}.`;
+                        const isTemporaryOrModelIssue =
+                            response.status === 503 ||
+                            response.status === 404 ||
+                            /high demand|overloaded|not found|not supported/i.test(lastErrorMsg);
+
+                        if (!isTemporaryOrModelIssue) {
+                            throw new Error(lastErrorMsg);
+                        }
                     }
 
-                    const aiText =
-                        data.candidates?.[0]?.content?.parts?.[0]?.text ||
-                        "No se recibió contenido de respuesta.";
+                    if (!aiText) {
+                        throw new Error(lastErrorMsg);
+                    }
 
                     setChats(prev =>
                         prev.map(c =>
@@ -983,7 +988,6 @@
 
             return (
                 <div className="flex h-screen overflow-hidden bg-slate-50 text-slate-800">
-                    {/* Barra lateral blanca y limpia */}
                     <aside className="w-72 bg-white border-r border-slate-200 flex flex-col shrink-0 shadow-sm z-10">
                         <div className="p-4 border-b border-slate-100 bg-gradient-to-br from-sky-50 via-white to-indigo-50">
                             <h1 className="font-extrabold text-lg text-slate-900 flex items-center gap-2.5">
@@ -1039,9 +1043,7 @@
                         </div>
                     </aside>
 
-                    {/* Área principal con fondo blanco/claro */}
                     <main className="flex-1 flex flex-col bg-slate-50/70 overflow-hidden">
-                        {/* Encabezado */}
                         <header className="p-3.5 border-b border-slate-200 bg-white/95 backdrop-blur flex items-center justify-between gap-4 shadow-2xs">
                             <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200/80">
                                 <button
@@ -1086,7 +1088,6 @@
                                     </div>
                                 </div>
 
-                                {/* Tarjetas con ilustraciones visuales */}
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                                     {TOPICS.map(t => (
                                         <div
@@ -1110,12 +1111,10 @@
                                     ))}
                                 </div>
 
-                                {/* Simulador interactivo */}
                                 {selectedTopic === 'optica' && <OpticsSimulator onSendToTutor={sendPromptDirectly} />}
                                 {selectedTopic === 'termodinamica' && <ThermoSimulator onSendToTutor={sendPromptDirectly} />}
                                 {selectedTopic === 'electromagnetismo' && <ElectroSimulator onSendToTutor={sendPromptDirectly} />}
 
-                                {/* Tarjetas de fórmulas */}
                                 <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs">
                                     <h3 className="text-base font-bold text-slate-900 mb-3">📐 Fórmulas Clave de {activeTopicObj.name}</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1130,7 +1129,6 @@
                             </div>
                         ) : (
                             <>
-                                {/* Banner visual superior en el chat */}
                                 <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 max-w-4xl mx-auto w-full">
                                     {currentChat.messages.length <= 1 && (
                                         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs grid grid-cols-1 sm:grid-cols-3 gap-3 mb-2">
@@ -1216,7 +1214,6 @@
                                     <div ref={chatEndRef} />
                                 </div>
 
-                                {/* Barra de entrada blanca */}
                                 <div className="p-4 bg-white border-t border-slate-200">
                                     <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex flex-col gap-2.5">
                                         {(selectedImage || selectedAudio || isRecording) && (
