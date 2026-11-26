@@ -60,7 +60,7 @@
         // Si deseas dejar tu clave fija en el código, pégala dentro de las comillas.
         // También puedes ingresarla directamente desde la interfaz web (se guarda en localStorage).
         // ============================================================================
-        const DEFAULT_API_KEY = "AQ.Ab8RN6JyXFXxjtqRu3VBkjyjkPT98pWfnJxwfcSPms16ioCj_w";
+        const DEFAULT_API_KEY = "";
         const { useState, useEffect, useRef } = React;
 
         // Componente auxiliar para renderizar fórmulas con KaTeX de forma segura
@@ -260,7 +260,7 @@
 
                 const effectiveKey = (apiKey || DEFAULT_API_KEY).trim();
                 if (!effectiveKey) {
-                    setStatusBanner("Ingresa tu API Key de Gemini en la barra lateral izquierda antes de enviar.");
+                    setStatusBanner("Ingresa tu API Key de Gemini antes de enviar.");
                     setTimeout(() => setStatusBanner(null), 4500);
                     return;
                 }
@@ -295,7 +295,7 @@
                     const systemPrompt = `Eres "Física Master IA", un tutor y profesor universitario experto especializado EXCLUSIVAMENTE en Física (Termodinámica, Electromagnetismo, Óptica, Mecánica Clásica, Física Moderna, etc.).
 REGLA ESTRICTA E INQUEBRANTABLE:
 Nunca uses código LaTeX, signos de dólar ($), barras invertidas (\\Delta, \\frac), asteriscos (**) ni almohadillas (###). Escribe todas las ecuaciones y unidades usando texto plano limpio y símbolos Unicode normales (por ejemplo: ΔU = Q - W, θ, η, ×, ÷, ², ³, √).
-Tu única área de conocimiento permitida es la FÍSICA. Si el usuario te pregunta, pide ayuda o conversa sobre cualquier tema ajeno a la física, debes rechazar la solicitud de manera amable, breve y profesional, indicándole que estás programado exclusivamente para asistir con temas y problemas de Física.
+Tu única área de conocimiento permitida es la FÍSICA. Si el usuario te pregunta, pide ayuda o conversa sobre cualquier tema ajeno a la física (por ejemplo: programación, historia, cocina, política, entretenimiento, biología sin enfoque biofísico, o matemáticas puras sin aplicación física), debes rechazar la solicitud de manera amable, breve y profesional, indicándole que estás programado exclusivamente para asistir con temas y problemas de Física.
 Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos, problemas escritos, gráficas):
 1. Identifica los principios o leyes físicas involucradas.
 2. Extrae los datos conocidos y las incógnitas con sus unidades en el Sistema Internacional (SI).
