@@ -32,8 +32,8 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body {
-            background-color: #060913;
-            color: #f1f5f9;
+            background-color: #050811;
+            color: #f8fafc;
         }
         ::-webkit-scrollbar {
             width: 6px;
@@ -60,27 +60,35 @@
         }
         @keyframes floatOrb {
             0%, 100% { transform: translate(0px, 0px) scale(1); }
-            50% { transform: translate(12px, -10px) scale(1.05); }
+            50% { transform: translate(16px, -14px) scale(1.08); }
         }
         .ambient-orb {
-            animation: floatOrb 8s ease-in-out infinite;
+            animation: floatOrb 7s ease-in-out infinite;
         }
         @keyframes fadeSlideUp {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; transform: translateY(10px) scale(0.99); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
         .msg-enter {
-            animation: fadeSlideUp 0.25s ease-out forwards;
+            animation: fadeSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes jitterParticle {
+            0%, 100% { transform: translate(0px, 0px); }
+            25% { transform: translate(4px, -4px); }
+            50% { transform: translate(-4px, 3px); }
+            75% { transform: translate(3px, 4px); }
+        }
+        .thermal-dot {
+            animation: jitterParticle ease-in-out infinite;
         }
     </style>
 </head>
-<body class="h-screen overflow-hidden flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200">
+<body class="h-screen overflow-hidden flex flex-col selection:bg-emerald-500/30 selection:text-emerald-200">
     <div id="root" class="h-full w-full flex"></div>
     <script type="text/babel">
         // ============================================================================
-        // CONFIGURACIÓN DE API KEY:
+        // CONFIGURACIÓN DE API KEY Y MODELOS:
         // Si deseas dejar tu clave fija en el código, pégala dentro de las comillas.
-        // También puedes ingresarla directamente desde la interfaz web (se guarda en localStorage).
         // ============================================================================
         const DEFAULT_API_KEY = "";
         const MODEL_CANDIDATES = [
@@ -89,9 +97,53 @@
             "gemini-2.5-flash"
         ];
 
+        const ACCENT_THEMES = {
+            emerald: {
+                name: 'Esmeralda',
+                swatch: 'bg-emerald-400',
+                primaryBtn: 'from-emerald-500 via-teal-500 to-cyan-600 hover:from-emerald-400 hover:via-teal-400 hover:to-cyan-500 shadow-emerald-950/60',
+                activeChat: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/35',
+                activeIcon: 'text-emerald-400',
+                badge: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/25',
+                dot: 'bg-emerald-400',
+                orb1: 'bg-emerald-500/15',
+                orb2: 'bg-fuchsia-500/15',
+                focusBorder: 'focus-within:border-emerald-500/60',
+                circuitStroke: '#34d399',
+                avatarGrad: 'from-emerald-500 via-teal-500 to-fuchsia-600'
+            },
+            fuchsia: {
+                name: 'Fucsia Neón',
+                swatch: 'bg-fuchsia-400',
+                primaryBtn: 'from-fuchsia-600 via-pink-600 to-rose-600 hover:from-fuchsia-500 hover:via-pink-500 hover:to-rose-500 shadow-fuchsia-950/60',
+                activeChat: 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/35',
+                activeIcon: 'text-fuchsia-400',
+                badge: 'text-fuchsia-300 bg-fuchsia-500/10 border-fuchsia-500/25',
+                dot: 'bg-fuchsia-400',
+                orb1: 'bg-fuchsia-500/15',
+                orb2: 'bg-amber-500/15',
+                focusBorder: 'focus-within:border-fuchsia-500/60',
+                circuitStroke: '#e879f9',
+                avatarGrad: 'from-fuchsia-500 via-pink-500 to-amber-500'
+            },
+            amber: {
+                name: 'Ámbar Solar',
+                swatch: 'bg-amber-400',
+                primaryBtn: 'from-amber-500 via-orange-500 to-rose-600 hover:from-amber-400 hover:via-orange-400 hover:to-rose-500 shadow-amber-950/60',
+                activeChat: 'bg-amber-500/15 text-amber-300 border-amber-500/35',
+                activeIcon: 'text-amber-400',
+                badge: 'text-amber-300 bg-amber-500/10 border-amber-500/25',
+                dot: 'bg-amber-400',
+                orb1: 'bg-amber-500/15',
+                orb2: 'bg-emerald-500/15',
+                focusBorder: 'focus-within:border-amber-500/60',
+                circuitStroke: '#fbbf24',
+                avatarGrad: 'from-amber-500 via-orange-500 to-emerald-500'
+            }
+        };
+
         const { useState, useEffect, useRef } = React;
 
-        // Componente auxiliar para renderizar fórmulas con KaTeX de forma segura
         function Formula({ tex, display = false }) {
             const containerRef = useRef(null);
             useEffect(() => {
@@ -109,7 +161,6 @@
             return <span ref={containerRef} className={display ? "block my-2 overflow-x-auto" : "inline-block"} />;
         }
 
-        // Componente de Iconos Lucide
         function Icon({ name, className = "w-4 h-4" }) {
             const iconRef = useRef(null);
             useEffect(() => {
@@ -121,14 +172,13 @@
             return <span ref={iconRef} className="inline-flex items-center justify-center shrink-0" />;
         }
 
-        // Datos de Temas de Física
         const TOPICS_DATA = [
             {
                 id: 'termodinamica',
                 title: 'Termodinámica',
                 subtitle: 'Calor, Trabajo y Leyes Térmicas',
-                color: 'from-orange-500 to-rose-600',
-                badgeColor: 'text-orange-400 bg-orange-500/10 border-orange-500/20',
+                color: 'from-amber-500 via-orange-500 to-rose-600',
+                badgeColor: 'text-amber-300 bg-amber-500/15 border-amber-500/30',
                 icon: 'flame',
                 description: 'Estudio de la transferencia de energía en forma de calor y trabajo mecánico en sistemas macroscópicos.',
                 formulas: [
@@ -141,8 +191,8 @@
                 id: 'electromagnetismo',
                 title: 'Electromagnetismo',
                 subtitle: 'Campos, Circuitos e Inducción',
-                color: 'from-cyan-500 to-blue-600',
-                badgeColor: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
+                color: 'from-emerald-400 via-teal-500 to-cyan-600',
+                badgeColor: 'text-emerald-300 bg-emerald-500/15 border-emerald-500/30',
                 icon: 'zap',
                 description: 'Interacción entre cargas eléctricas en reposo o movimiento, circuitos eléctricos y campos magnéticos.',
                 formulas: [
@@ -155,8 +205,8 @@
                 id: 'optica',
                 title: 'Luz y Óptica',
                 subtitle: 'Reflexión, Refracción y Lentes',
-                color: 'from-violet-500 to-indigo-600',
-                badgeColor: 'text-violet-400 bg-violet-500/10 border-violet-500/20',
+                color: 'from-fuchsia-500 via-pink-500 to-rose-500',
+                badgeColor: 'text-fuchsia-300 bg-fuchsia-500/15 border-fuchsia-500/30',
                 icon: 'sun',
                 description: 'Comportamiento de la luz al propagarse por distintos medios, formación de imágenes en espejos y lentes.',
                 formulas: [
@@ -186,14 +236,18 @@
             const [activeTab, setActiveTab] = useState('chat');
             const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-            const [apiKey, setApiKey] = useState(() => {
+            const [themeKey, setThemeKey] = useState(() => {
+                return localStorage.getItem('fisica_master_theme') || 'emerald';
+            });
+            const theme = ACCENT_THEMES[themeKey] || ACCENT_THEMES.emerald;
+
+            useEffect(() => {
+                localStorage.setItem('fisica_master_theme', themeKey);
+            }, [themeKey]);
+
+            const [apiKey] = useState(() => {
                 return localStorage.getItem('fisica_master_api_key') || DEFAULT_API_KEY;
             });
-
-            const handleApiKeyChange = (val) => {
-                setApiKey(val);
-                localStorage.setItem('fisica_master_api_key', val);
-            };
 
             const [chats, setChats] = useState(() => {
                 try {
@@ -298,7 +352,7 @@
 
                 const effectiveKey = (apiKey || DEFAULT_API_KEY).trim();
                 if (!effectiveKey) {
-                    setStatusBanner("Configura tu API Key de Gemini en DEFAULT_API_KEY o en el campo de configuración antes de enviar.");
+                    setStatusBanner("Configura tu API Key de Gemini en DEFAULT_API_KEY antes de enviar.");
                     setTimeout(() => setStatusBanner(null), 4500);
                     return;
                 }
@@ -433,21 +487,22 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                 await executeGeminiRequest(inputMessage, selectedImage);
             };
 
-            // 1. Termodinámica: Calor Sensible Q = m * c * ΔT
+            // 1. Termodinámica
             const [mass, setMass] = useState(2);
             const [specificHeat, setSpecificHeat] = useState(4186);
             const [deltaT, setDeltaT] = useState(15);
             const heatQ = (Number(mass) * Number(specificHeat) * Number(deltaT)).toFixed(2);
-            const heatIntensity = Math.min(100, Math.max(8, Math.abs(Number(deltaT))));
+            const heatIntensity = Math.min(100, Math.max(10, Math.abs(Number(deltaT))));
+            const jitterSec = Math.max(0.25, 1.8 - Math.abs(Number(deltaT)) * 0.015).toFixed(2);
 
-            // 2. Electromagnetismo: Ley de Ohm V = I * R
+            // 2. Electromagnetismo
             const [currentI, setCurrentI] = useState(2.5);
             const [resistanceR, setResistanceR] = useState(12);
             const voltageV = (Number(currentI) * Number(resistanceR)).toFixed(2);
             const powerP = (Number(voltageV) * Number(currentI)).toFixed(2);
-            const flowSpeed = Math.max(0.35, Math.min(3.5, 2.2 / Math.max(0.2, Number(currentI))));
+            const flowSpeed = Math.max(0.3, Math.min(3.2, 2.0 / Math.max(0.2, Number(currentI))));
 
-            // 3. Óptica: Ley de Snell n1 * sin(θ1) = n2 * sin(θ2)
+            // 3. Óptica
             const [n1, setN1] = useState(1.0);
             const [n2, setN2] = useState(1.33);
             const [theta1, setTheta1] = useState(30);
@@ -458,7 +513,6 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                 ? "Reflexión Interna Total"
                 : theta2DegNum.toFixed(2) + "°";
 
-            // Coordenadas visuales del rayo en SVG (centro en x=150, y=75)
             const rayLen = 58;
             const rad1 = (Number(theta1) * Math.PI) / 180;
             const incStartX = 150 - Math.sin(rad1) * rayLen;
@@ -468,10 +522,10 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
             const refEndY = isTotalInternalReflection ? 75 - Math.cos(rad1) * rayLen : 75 + Math.cos(rad2) * rayLen;
 
             return (
-                <div className="flex h-full w-full bg-[#060913] text-slate-100 overflow-hidden relative">
-                    {/* Orbes ambientales sutiles de fondo */}
-                    <div className="pointer-events-none fixed -top-24 left-1/4 w-96 h-96 rounded-full bg-cyan-600/10 blur-3xl ambient-orb" />
-                    <div className="pointer-events-none fixed bottom-0 right-1/5 w-96 h-96 rounded-full bg-violet-600/10 blur-3xl ambient-orb" style={{ animationDelay: '3s' }} />
+                <div className="flex h-full w-full bg-[#050811] text-slate-100 overflow-hidden relative">
+                    {/* Orbes ambientales de color dinámico */}
+                    <div className={`pointer-events-none fixed -top-24 left-1/4 w-96 h-96 rounded-full ${theme.orb1} blur-3xl ambient-orb transition-colors duration-500`} />
+                    <div className={`pointer-events-none fixed bottom-0 right-1/5 w-96 h-96 rounded-full ${theme.orb2} blur-3xl ambient-orb transition-colors duration-500`} style={{ animationDelay: '3s' }} />
 
                     {mobileMenuOpen && (
                         <div
@@ -481,16 +535,16 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                     )}
 
                     {/* 1. BARRA LATERAL IZQUIERDA FIJA (w-72) */}
-                    <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-72 bg-[#0b101e]/95 border-r border-slate-800/80 flex flex-col justify-between transition-transform duration-300 ease-in-out shrink-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+                    <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-72 bg-[#0a101d]/95 border-r border-slate-800/80 flex flex-col justify-between transition-transform duration-300 ease-in-out shrink-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
                         <div className="p-4 border-b border-slate-800/80 space-y-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/25">
+                                    <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${theme.avatarGrad} flex items-center justify-center text-white shadow-lg transition-all duration-300`}>
                                         <Icon name="atom" className="w-5 h-5" />
                                     </div>
                                     <div>
                                         <h1 className="font-bold text-base tracking-tight text-white leading-none">Física Master IA</h1>
-                                        <span className="text-[11px] text-cyan-400 font-medium">Tutor Científico</span>
+                                        <span className={`text-[11px] font-medium ${theme.activeIcon}`}>Tutor Científico</span>
                                     </div>
                                 </div>
                                 <button
@@ -500,9 +554,26 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                     <Icon name="x" className="w-5 h-5" />
                                 </button>
                             </div>
+
+                            {/* Selector rápido de color dinámico */}
+                            <div className="flex items-center justify-between bg-[#060913] border border-slate-800/90 rounded-xl px-3 py-2">
+                                <span className="text-[11px] text-slate-400 font-medium">Color de energía</span>
+                                <div className="flex items-center gap-2">
+                                    {Object.entries(ACCENT_THEMES).map(([key, item]) => (
+                                        <button
+                                            key={key}
+                                            type="button"
+                                            onClick={() => setThemeKey(key)}
+                                            title={item.name}
+                                            className={`w-4 h-4 rounded-full ${item.swatch} transition-transform ${themeKey === key ? 'scale-125 ring-2 ring-white' : 'opacity-65 hover:opacity-100'}`}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+
                             <button
                                 onClick={createNewChat}
-                                className="w-full py-2.5 px-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold rounded-xl text-sm flex items-center justify-center gap-2 shadow-md shadow-cyan-950/50 transition-all active:scale-[0.98]"
+                                className={`w-full py-2.5 px-4 bg-gradient-to-r ${theme.primaryBtn} text-white font-semibold rounded-xl text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.98]`}
                             >
                                 <Icon name="plus" className="w-4 h-4" />
                                 <span>Nuevo Chat</span>
@@ -526,12 +597,12 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                         }}
                                         className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer text-sm transition-all ${
                                             isActive
-                                                ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-medium shadow-sm'
+                                                ? `${theme.activeChat} border font-medium shadow-sm`
                                                 : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 border border-transparent'
                                         }`}
                                     >
                                         <div className="flex items-center gap-2.5 min-w-0">
-                                            <Icon name="message-square" className={`w-4 h-4 ${isActive ? 'text-cyan-400' : 'text-slate-500'}`} />
+                                            <Icon name="message-square" className={`w-4 h-4 ${isActive ? theme.activeIcon : 'text-slate-500'}`} />
                                             <span className="truncate text-xs">{chat.title}</span>
                                         </div>
                                         <button
@@ -549,7 +620,7 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
 
                     {/* 2. ÁREA PRINCIPAL DERECHA */}
                     <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative z-10">
-                        <header className="h-16 bg-[#0b101e]/90 backdrop-blur-md border-b border-slate-800/80 px-4 lg:px-8 flex items-center justify-between shrink-0 z-20">
+                        <header className="h-16 bg-[#0a101d]/90 backdrop-blur-md border-b border-slate-800/80 px-4 lg:px-8 flex items-center justify-between shrink-0 z-20">
                             <div className="flex items-center gap-3">
                                 <button
                                     onClick={() => setMobileMenuOpen(true)}
@@ -563,7 +634,7 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                         onClick={() => setActiveTab('chat')}
                                         className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all ${
                                             activeTab === 'chat'
-                                                ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md shadow-cyan-950/50'
+                                                ? `bg-gradient-to-r ${theme.primaryBtn} text-white shadow-md`
                                                 : 'text-slate-400 hover:text-slate-200'
                                         }`}
                                     >
@@ -574,7 +645,7 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                         onClick={() => setActiveTab('simuladores')}
                                         className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all ${
                                             activeTab === 'simuladores'
-                                                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-950/50'
+                                                ? 'bg-gradient-to-r from-fuchsia-600 via-pink-600 to-amber-500 text-white shadow-md'
                                                 : 'text-slate-400 hover:text-slate-200'
                                         }`}
                                     >
@@ -583,8 +654,8 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                     </button>
                                 </nav>
                             </div>
-                            <div className="hidden sm:flex items-center gap-2 text-xs text-cyan-400 bg-cyan-950/40 border border-cyan-800/40 px-3 py-1.5 rounded-full">
-                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                            <div className={`hidden sm:flex items-center gap-2 text-xs px-3 py-1.5 rounded-full border ${theme.badge}`}>
+                                <span className={`w-2 h-2 rounded-full ${theme.dot} animate-pulse`} />
                                 <span>Modo Estricto: Solo Física</span>
                             </div>
                         </header>
@@ -600,9 +671,9 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                             <div className="flex-1 flex flex-col h-full overflow-hidden max-w-4xl w-full mx-auto">
                                 <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
                                     {currentChat.messages.length <= 1 && (
-                                        <div className="bg-[#0f1629]/90 border border-slate-800/90 rounded-2xl p-4 shadow-lg space-y-2.5">
-                                            <div className="text-xs font-semibold text-cyan-300 flex items-center gap-2">
-                                                <Icon name="sparkles" className="w-4 h-4 text-cyan-400" />
+                                        <div className="bg-[#0c1324]/95 border border-slate-800/90 rounded-2xl p-4 shadow-xl space-y-2.5 msg-enter">
+                                            <div className={`text-xs font-semibold flex items-center gap-2 ${theme.activeIcon}`}>
+                                                <Icon name="sparkles" className="w-4 h-4" />
                                                 <span>Ejemplos rápidos para probar ahora:</span>
                                             </div>
                                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -611,7 +682,7 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                                         key={idx}
                                                         type="button"
                                                         onClick={() => sendTextToTutor(qp.text)}
-                                                        className="text-left p-2.5 rounded-xl bg-[#070b14] hover:bg-slate-800/80 border border-slate-800 hover:border-cyan-500/40 text-xs text-slate-300 transition-all"
+                                                        className="text-left p-2.5 rounded-xl bg-[#050811] hover:bg-slate-800/80 border border-slate-800 hover:border-emerald-400/40 text-xs text-slate-300 transition-all"
                                                     >
                                                         {qp.label}
                                                     </button>
@@ -625,14 +696,14 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                         return (
                                             <div key={idx} className={`flex gap-3 msg-enter ${isUser ? 'justify-end' : 'justify-start'}`}>
                                                 {!isUser && (
-                                                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0 mt-1 shadow-md shadow-cyan-950/50">
+                                                    <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${theme.avatarGrad} flex items-center justify-center text-white text-xs font-bold shrink-0 mt-1 shadow-md`}>
                                                         IA
                                                     </div>
                                                 )}
                                                 <div className={`max-w-[85%] sm:max-w-[78%] rounded-2xl px-4 py-3.5 text-sm leading-relaxed shadow-lg ${
                                                     isUser
-                                                        ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-br-sm'
-                                                        : 'bg-[#111827] border border-slate-800 text-slate-200 rounded-bl-sm'
+                                                        ? `bg-gradient-to-r ${theme.primaryBtn} text-white rounded-br-sm`
+                                                        : 'bg-[#0e1526] border border-slate-800/90 text-slate-200 rounded-bl-sm'
                                                 }`}>
                                                     {msg.image && (
                                                         <div className="mb-3">
@@ -655,11 +726,11 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                     })}
                                     {isLoading && (
                                         <div className="flex gap-3 justify-start items-center msg-enter">
-                                            <div className="w-8 h-8 rounded-xl bg-cyan-600/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                                            <div className={`w-8 h-8 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center ${theme.activeIcon}`}>
                                                 <Icon name="loader-2" className="w-4 h-4 animate-spin" />
                                             </div>
-                                            <div className="bg-[#111827] border border-slate-800 rounded-2xl px-4 py-3 text-xs text-slate-300 flex items-center gap-2">
-                                                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                                            <div className="bg-[#0e1526] border border-slate-800 rounded-2xl px-4 py-3 text-xs text-slate-300 flex items-center gap-2">
+                                                <span className={`w-2 h-2 rounded-full ${theme.dot} animate-ping`} />
                                                 Analizando leyes físicas y resolviendo paso a paso...
                                             </div>
                                         </div>
@@ -667,8 +738,8 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                     <div ref={messagesEndRef} />
                                 </div>
 
-                                <div className="p-4 bg-[#060913]/90 border-t border-slate-800/80 shrink-0">
-                                    <form onSubmit={handleSendMessage} className="bg-[#0f1629] border border-slate-800 focus-within:border-cyan-500/50 rounded-2xl p-2.5 shadow-xl space-y-2.5 transition-colors">
+                                <div className="p-4 bg-[#050811]/95 border-t border-slate-800/80 shrink-0">
+                                    <form onSubmit={handleSendMessage} className={`bg-[#0c1324] border border-slate-800 ${theme.focusBorder} rounded-2xl p-2.5 shadow-xl space-y-2.5 transition-colors`}>
                                         {selectedImage && (
                                             <div className="flex items-center justify-between bg-slate-900/90 border border-slate-700/80 rounded-xl p-2">
                                                 <div className="flex items-center gap-3">
@@ -699,7 +770,7 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                             <button
                                                 type="button"
                                                 onClick={() => fileInputRef.current?.click()}
-                                                className="p-3 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-cyan-400 border border-slate-700/70 transition-colors shrink-0"
+                                                className={`p-3 rounded-xl bg-slate-800/90 hover:bg-slate-700 ${theme.activeIcon} border border-slate-700/70 transition-colors shrink-0`}
                                                 title="Adjuntar imagen de problema, circuito o diagrama"
                                             >
                                                 <Icon name="image-plus" className="w-5 h-5" />
@@ -714,7 +785,7 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                             <button
                                                 type="submit"
                                                 disabled={isLoading || (!inputMessage.trim() && !selectedImage)}
-                                                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-40 disabled:pointer-events-none text-white text-sm font-semibold flex items-center gap-2 shadow-md transition-all shrink-0 active:scale-[0.98]"
+                                                className={`px-5 py-2.5 rounded-xl bg-gradient-to-r ${theme.primaryBtn} disabled:opacity-40 disabled:pointer-events-none text-white text-sm font-semibold flex items-center gap-2 shadow-md transition-all shrink-0 active:scale-[0.98]`}
                                             >
                                                 <span className="hidden sm:inline">Enviar</span>
                                                 <Icon name="send" className="w-4 h-4" />
@@ -729,16 +800,16 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                         {activeTab === 'simuladores' && (
                             <div className="flex-1 overflow-y-auto p-4 sm:p-8">
                                 <div className="max-w-6xl mx-auto space-y-8">
-                                    <div className="bg-gradient-to-r from-[#0f1629] via-[#131c36] to-[#0f1629] border border-slate-800/90 rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4 shadow-xl">
+                                    <div className="bg-gradient-to-r from-[#0e1526] via-[#17122e] to-[#0e1526] border border-slate-800/90 rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4 shadow-xl">
                                         <div>
-                                            <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-400">Laboratorio Vivo</span>
+                                            <span className="text-[11px] font-bold uppercase tracking-wider text-fuchsia-400">Laboratorio Vivo</span>
                                             <h2 className="text-2xl font-bold text-white mt-0.5">Fórmulas Clave y Simuladores Interactivos</h2>
                                             <p className="text-sm text-slate-400 mt-1">
                                                 Explora las ecuaciones con KaTeX, observa la animación de cada fenómeno y envíalo al Tutor IA.
                                             </p>
                                         </div>
-                                        <div className="flex items-center gap-2 text-xs bg-slate-900/90 border border-slate-700/80 px-3.5 py-2 rounded-xl text-slate-300">
-                                            <Icon name="activity" className="w-4 h-4 text-emerald-400" />
+                                        <div className="flex items-center gap-2 text-xs bg-slate-900/90 border border-slate-700/80 px-3.5 py-2 rounded-xl text-slate-200">
+                                            <Icon name="activity" className="w-4 h-4 text-emerald-400 animate-pulse" />
                                             <span>Simulación Activa</span>
                                         </div>
                                     </div>
@@ -746,7 +817,7 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                     {/* Tarjetas de Fórmulas por Tema */}
                                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                         {TOPICS_DATA.map(topic => (
-                                            <div key={topic.id} className="bg-[#0f1629] border border-slate-800/90 hover:border-slate-700 rounded-2xl p-6 flex flex-col justify-between shadow-xl transition-all">
+                                            <div key={topic.id} className="bg-[#0c1324] border border-slate-800/90 hover:border-slate-700 rounded-2xl p-6 flex flex-col justify-between shadow-xl transition-all">
                                                 <div className="space-y-3">
                                                     <div className="flex items-center justify-between">
                                                         <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${topic.color} flex items-center justify-center text-white shadow-md`}>
@@ -762,9 +833,9 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                                 <div className="mt-5 pt-4 border-t border-slate-800 space-y-2.5">
                                                     <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Ecuaciones Principales</span>
                                                     {topic.formulas.map((f, i) => (
-                                                        <div key={i} className="bg-[#070b14] border border-slate-800/80 rounded-xl p-3">
+                                                        <div key={i} className="bg-[#050811] border border-slate-800/80 rounded-xl p-3">
                                                             <div className="text-[11px] text-slate-400 mb-1">{f.name}</div>
-                                                            <div className="text-cyan-300 text-sm">
+                                                            <div className="text-emerald-300 text-sm">
                                                                 <Formula tex={f.tex} display={true} />
                                                             </div>
                                                         </div>
@@ -774,30 +845,41 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                         ))}
                                     </div>
 
-                                    {/* Simuladores / Calculadores Interactivos con animación */}
+                                    {/* Simuladores / Calculadores Interactivos */}
                                     <div className="pt-2">
                                         <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                                            <Icon name="cpu" className="w-5 h-5 text-cyan-400" />
+                                            <Icon name="cpu" className="w-5 h-5 text-fuchsia-400" />
                                             <span>Simuladores Rápidos en Tiempo Real</span>
                                         </h3>
                                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                            {/* Simulador 1: Calor Sensible (Termodinámica) */}
-                                            <div className="bg-[#0f1629] border border-slate-800 rounded-2xl p-6 space-y-4 shadow-lg flex flex-col justify-between">
+                                            {/* Simulador 1: Calor Sensible */}
+                                            <div className="bg-[#0c1324] border border-slate-800 rounded-2xl p-6 space-y-4 shadow-lg flex flex-col justify-between">
                                                 <div className="space-y-4">
                                                     <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                                                        <h4 className="font-bold text-orange-400 text-sm">1. Calor Sensible</h4>
+                                                        <h4 className="font-bold text-amber-400 text-sm">1. Calor Sensible</h4>
                                                         <Formula tex="Q = m c \Delta T" />
                                                     </div>
 
-                                                    {/* Visual térmico */}
-                                                    <div className="bg-[#070b14] border border-slate-800 rounded-xl p-3 space-y-2">
-                                                        <div className="flex justify-between text-[11px] text-slate-400">
-                                                            <span>Nivel de agitación térmica</span>
-                                                            <span className="text-orange-300 font-mono">{Number(deltaT) >= 0 ? 'Calentamiento' : 'Enfriamiento'}</span>
+                                                    {/* Partículas térmicas animadas */}
+                                                    <div className="bg-[#050811] border border-slate-800 rounded-xl p-3 space-y-2.5">
+                                                        <div className="relative h-12 rounded-lg bg-slate-900/70 overflow-hidden border border-slate-800/80 flex items-center justify-around px-3">
+                                                            {[0, 1, 2, 3, 4, 5].map((dot) => (
+                                                                <span
+                                                                    key={dot}
+                                                                    className="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-amber-400 to-rose-500 thermal-dot shadow"
+                                                                    style={{
+                                                                        animationDuration: `${jitterSec}s`,
+                                                                        animationDelay: `${dot * 0.08}s`
+                                                                    }}
+                                                                />
+                                                            ))}
+                                                            <span className="text-[10px] font-mono text-amber-300 bg-black/50 px-2 py-0.5 rounded">
+                                                                {Number(deltaT) >= 0 ? '+Calor' : '-Calor'}
+                                                            </span>
                                                         </div>
-                                                        <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                                                        <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
                                                             <div
-                                                                className="h-full bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 transition-all duration-300"
+                                                                className="h-full bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 transition-all duration-300"
                                                                 style={{ width: `${heatIntensity}%` }}
                                                             />
                                                         </div>
@@ -807,14 +889,14 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                                         <div>
                                                             <label className="flex justify-between text-slate-300 mb-1">
                                                                 <span>Masa (m):</span>
-                                                                <span className="font-mono text-orange-300">{mass} kg</span>
+                                                                <span className="font-mono text-amber-300">{mass} kg</span>
                                                             </label>
-                                                            <input type="range" min="0.5" max="20" step="0.5" value={mass} onChange={e => setMass(e.target.value)} className="w-full accent-orange-500 cursor-pointer" />
+                                                            <input type="range" min="0.5" max="20" step="0.5" value={mass} onChange={e => setMass(e.target.value)} className="w-full accent-amber-500 cursor-pointer" />
                                                         </div>
                                                         <div>
                                                             <label className="flex justify-between text-slate-300 mb-1">
                                                                 <span>Calor Específico (c):</span>
-                                                                <span className="font-mono text-orange-300">{specificHeat} J/kg·K</span>
+                                                                <span className="font-mono text-amber-300">{specificHeat} J/kg·K</span>
                                                             </label>
                                                             <select value={specificHeat} onChange={e => setSpecificHeat(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200">
                                                                 <option value="4186">Agua Líquida (4186 J/kg·K)</option>
@@ -826,38 +908,37 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                                         <div>
                                                             <label className="flex justify-between text-slate-300 mb-1">
                                                                 <span>Variación Temp. (ΔT):</span>
-                                                                <span className="font-mono text-orange-300">{deltaT} K</span>
+                                                                <span className="font-mono text-amber-300">{deltaT} K</span>
                                                             </label>
-                                                            <input type="range" min="-50" max="100" step="1" value={deltaT} onChange={e => setDeltaT(e.target.value)} className="w-full accent-orange-500 cursor-pointer" />
+                                                            <input type="range" min="-50" max="100" step="1" value={deltaT} onChange={e => setDeltaT(e.target.value)} className="w-full accent-amber-500 cursor-pointer" />
                                                         </div>
                                                     </div>
                                                 </div>
 
                                                 <div className="space-y-2.5 pt-2">
-                                                    <div className="bg-[#070b14] border border-orange-500/30 rounded-xl p-3 text-center">
+                                                    <div className="bg-[#050811] border border-amber-500/35 rounded-xl p-3 text-center">
                                                         <span className="text-[11px] text-slate-400 block">Calor Transferido (Q)</span>
-                                                        <span className="text-lg font-extrabold text-orange-400 font-mono">{heatQ} J</span>
+                                                        <span className="text-lg font-extrabold text-amber-400 font-mono">{heatQ} J</span>
                                                     </div>
                                                     <button
                                                         type="button"
                                                         onClick={() => sendTextToTutor(`Explica paso a paso este cálculo de calor sensible: masa m = ${mass} kg, calor específico c = ${specificHeat} J/(kg·K), variación de temperatura ΔT = ${deltaT} K, resultado Q = ${heatQ} J.`)}
-                                                        className="w-full py-2 px-3 rounded-xl bg-orange-500/15 hover:bg-orange-500/25 border border-orange-500/30 text-orange-300 text-xs font-semibold transition"
+                                                        className="w-full py-2 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-semibold transition"
                                                     >
                                                         Explicar este caso con IA
                                                     </button>
                                                 </div>
                                             </div>
 
-                                            {/* Simulador 2: Ley de Ohm (Electromagnetismo) */}
-                                            <div className="bg-[#0f1629] border border-slate-800 rounded-2xl p-6 space-y-4 shadow-lg flex flex-col justify-between">
+                                            {/* Simulador 2: Ley de Ohm */}
+                                            <div className="bg-[#0c1324] border border-slate-800 rounded-2xl p-6 space-y-4 shadow-lg flex flex-col justify-between">
                                                 <div className="space-y-4">
                                                     <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                                                        <h4 className="font-bold text-cyan-400 text-sm">2. Ley de Ohm</h4>
+                                                        <h4 className="font-bold text-emerald-400 text-sm">2. Ley de Ohm</h4>
                                                         <Formula tex="V = I \cdot R" />
                                                     </div>
 
-                                                    {/* Circuito animado */}
-                                                    <div className="bg-[#070b14] border border-slate-800 rounded-xl p-2 flex justify-center">
+                                                    <div className="bg-[#050811] border border-slate-800 rounded-xl p-2 flex justify-center">
                                                         <svg viewBox="0 0 260 92" className="w-full h-24">
                                                             <rect x="28" y="16" width="204" height="60" rx="10" fill="none" stroke="#1e293b" strokeWidth="5" />
                                                             <rect
@@ -867,15 +948,15 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                                                 height="60"
                                                                 rx="10"
                                                                 fill="none"
-                                                                stroke="#22d3ee"
+                                                                stroke={theme.circuitStroke}
                                                                 strokeWidth="3"
                                                                 className="flow-line"
                                                                 style={{ animationDuration: `${flowSpeed}s` }}
                                                             />
-                                                            <rect x="12" y="34" width="32" height="24" rx="5" fill="#0f172a" stroke="#38bdf8" strokeWidth="1.5" />
-                                                            <text x="28" y="49" textAnchor="middle" fill="#7dd3fc" fontSize="9" fontWeight="bold">{voltageV}V</text>
-                                                            <rect x="216" y="32" width="32" height="28" rx="5" fill="#0f172a" stroke="#f59e0b" strokeWidth="1.5" />
-                                                            <text x="232" y="49" textAnchor="middle" fill="#fcd34d" fontSize="9" fontWeight="bold">{resistanceR}Ω</text>
+                                                            <rect x="12" y="34" width="32" height="24" rx="5" fill="#0f172a" stroke="#34d399" strokeWidth="1.5" />
+                                                            <text x="28" y="49" textAnchor="middle" fill="#a7f3d0" fontSize="9" fontWeight="bold">{voltageV}V</text>
+                                                            <rect x="216" y="32" width="32" height="28" rx="5" fill="#0f172a" stroke="#fbbf24" strokeWidth="1.5" />
+                                                            <text x="232" y="49" textAnchor="middle" fill="#fde68a" fontSize="9" fontWeight="bold">{resistanceR}Ω</text>
                                                         </svg>
                                                     </div>
 
@@ -883,53 +964,52 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                                         <div>
                                                             <label className="flex justify-between text-slate-300 mb-1">
                                                                 <span>Corriente Eléctrica (I):</span>
-                                                                <span className="font-mono text-cyan-300">{currentI} A</span>
+                                                                <span className="font-mono text-emerald-300">{currentI} A</span>
                                                             </label>
-                                                            <input type="range" min="0.1" max="15" step="0.1" value={currentI} onChange={e => setCurrentI(e.target.value)} className="w-full accent-cyan-500 cursor-pointer" />
+                                                            <input type="range" min="0.1" max="15" step="0.1" value={currentI} onChange={e => setCurrentI(e.target.value)} className="w-full accent-emerald-500 cursor-pointer" />
                                                         </div>
                                                         <div>
                                                             <label className="flex justify-between text-slate-300 mb-1">
                                                                 <span>Resistencia (R):</span>
-                                                                <span className="font-mono text-cyan-300">{resistanceR} Ω</span>
+                                                                <span className="font-mono text-emerald-300">{resistanceR} Ω</span>
                                                             </label>
-                                                            <input type="range" min="1" max="100" step="1" value={resistanceR} onChange={e => setResistanceR(e.target.value)} className="w-full accent-cyan-500 cursor-pointer" />
+                                                            <input type="range" min="1" max="100" step="1" value={resistanceR} onChange={e => setResistanceR(e.target.value)} className="w-full accent-emerald-500 cursor-pointer" />
                                                         </div>
                                                     </div>
                                                 </div>
 
                                                 <div className="space-y-2.5 pt-2">
                                                     <div className="grid grid-cols-2 gap-2">
-                                                        <div className="bg-[#070b14] border border-cyan-500/30 rounded-xl p-2.5 text-center">
+                                                        <div className="bg-[#050811] border border-emerald-500/35 rounded-xl p-2.5 text-center">
                                                             <span className="text-[10px] text-slate-400 block">Voltaje (V)</span>
-                                                            <span className="text-base font-extrabold text-cyan-400 font-mono">{voltageV} V</span>
+                                                            <span className="text-base font-extrabold text-emerald-400 font-mono">{voltageV} V</span>
                                                         </div>
-                                                        <div className="bg-[#070b14] border border-blue-500/30 rounded-xl p-2.5 text-center">
+                                                        <div className="bg-[#050811] border border-teal-500/35 rounded-xl p-2.5 text-center">
                                                             <span className="text-[10px] text-slate-400 block">Potencia (P)</span>
-                                                            <span className="text-base font-extrabold text-blue-400 font-mono">{powerP} W</span>
+                                                            <span className="text-base font-extrabold text-teal-300 font-mono">{powerP} W</span>
                                                         </div>
                                                     </div>
                                                     <button
                                                         type="button"
                                                         onClick={() => sendTextToTutor(`Analiza este circuito de Ley de Ohm paso a paso: corriente I = ${currentI} A, resistencia R = ${resistanceR} Ω, voltaje V = ${voltageV} V y potencia P = ${powerP} W.`)}
-                                                        className="w-full py-2 px-3 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 text-xs font-semibold transition"
+                                                        className="w-full py-2 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-semibold transition"
                                                     >
                                                         Explicar este circuito con IA
                                                     </button>
                                                 </div>
                                             </div>
 
-                                            {/* Simulador 3: Ley de Snell (Óptica) */}
-                                            <div className="bg-[#0f1629] border border-slate-800 rounded-2xl p-6 space-y-4 shadow-lg flex flex-col justify-between">
+                                            {/* Simulador 3: Ley de Snell */}
+                                            <div className="bg-[#0c1324] border border-slate-800 rounded-2xl p-6 space-y-4 shadow-lg flex flex-col justify-between">
                                                 <div className="space-y-4">
                                                     <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                                                        <h4 className="font-bold text-violet-400 text-sm">3. Ley de Snell</h4>
+                                                        <h4 className="font-bold text-fuchsia-400 text-sm">3. Ley de Snell</h4>
                                                         <Formula tex="n_1 \sin\theta_1 = n_2 \sin\theta_2" />
                                                     </div>
 
-                                                    {/* Haz de luz animado en interfaz */}
-                                                    <div className="bg-[#070b14] border border-slate-800 rounded-xl p-2 flex justify-center">
+                                                    <div className="bg-[#050811] border border-slate-800 rounded-xl p-2 flex justify-center">
                                                         <svg viewBox="0 0 300 150" className="w-full h-28">
-                                                            <rect x="0" y="75" width="300" height="75" fill="rgba(139, 92, 246, 0.14)" />
+                                                            <rect x="0" y="75" width="300" height="75" fill="rgba(217, 70, 239, 0.14)" />
                                                             <line x1="0" y1="75" x2="300" y2="75" stroke="#64748b" strokeWidth="1.5" />
                                                             <line x1="150" y1="10" x2="150" y2="140" stroke="#334155" strokeDasharray="4 4" strokeWidth="1.2" />
                                                             <line x1={incStartX} y1={incStartY} x2="150" y2="75" stroke="#fbbf24" strokeWidth="2.5" />
@@ -938,11 +1018,11 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                                                 y1="75"
                                                                 x2={refEndX}
                                                                 y2={refEndY}
-                                                                stroke={isTotalInternalReflection ? "#f43f5e" : "#a78bfa"}
+                                                                stroke={isTotalInternalReflection ? "#f43f5e" : "#e879f9"}
                                                                 strokeWidth="2.5"
                                                             />
                                                             <text x="12" y="20" fill="#94a3b8" fontSize="9">n₁ = {n1}</text>
-                                                            <text x="12" y="140" fill="#c4b5fd" fontSize="9">n₂ = {n2}</text>
+                                                            <text x="12" y="140" fill="#f5d0fe" fontSize="9">n₂ = {n2}</text>
                                                         </svg>
                                                     </div>
 
@@ -970,22 +1050,22 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                                         <div>
                                                             <label className="flex justify-between text-slate-300 mb-1">
                                                                 <span>Ángulo de Incidencia (θ₁):</span>
-                                                                <span className="font-mono text-violet-300">{theta1}°</span>
+                                                                <span className="font-mono text-fuchsia-300">{theta1}°</span>
                                                             </label>
-                                                            <input type="range" min="0" max="89" step="1" value={theta1} onChange={e => setTheta1(e.target.value)} className="w-full accent-violet-500 cursor-pointer" />
+                                                            <input type="range" min="0" max="89" step="1" value={theta1} onChange={e => setTheta1(e.target.value)} className="w-full accent-fuchsia-500 cursor-pointer" />
                                                         </div>
                                                     </div>
                                                 </div>
 
                                                 <div className="space-y-2.5 pt-2">
-                                                    <div className="bg-[#070b14] border border-violet-500/30 rounded-xl p-3 text-center">
+                                                    <div className="bg-[#050811] border border-fuchsia-500/35 rounded-xl p-3 text-center">
                                                         <span className="text-[11px] text-slate-400 block">Ángulo Refractado (θ₂)</span>
-                                                        <span className="text-sm font-extrabold text-violet-400 font-mono">{theta2}</span>
+                                                        <span className="text-sm font-extrabold text-fuchsia-400 font-mono">{theta2}</span>
                                                     </div>
                                                     <button
                                                         type="button"
                                                         onClick={() => sendTextToTutor(`Explica paso a paso esta refracción por Ley de Snell: n1 = ${n1}, n2 = ${n2}, ángulo de incidencia θ1 = ${theta1}° y resultado θ2 = ${theta2}.`)}
-                                                        className="w-full py-2 px-3 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/30 text-violet-300 text-xs font-semibold transition"
+                                                        className="w-full py-2 px-3 rounded-xl bg-fuchsia-500/15 hover:bg-fuchsia-500/25 border border-fuchsia-500/30 text-fuchsia-300 text-xs font-semibold transition"
                                                     >
                                                         Explicar esta refracción con IA
                                                     </button>
