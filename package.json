@@ -1,0 +1,16 @@
+{
+  "name": "fisica-ia",
+  "version": "1.0.0",
+  "description": "Física Master IA - Tutor y Simuladores",
+  "main": "index.html.html",
+  "scripts": {
+    "dev": "echo 'Open index.html.html in browser'",
+    "build": "echo 'No build step required for vanilla HTML/JS'"
+  },
+  "keywords": ["physics", "education", "ai"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@vercel/speed-insights": "^1.0.12"
+  }
+}
