@@ -84,7 +84,7 @@
         // Si deseas dejar tu clave fija en el código, pégala dentro de las comillas.
         // También puedes ingresarla directamente desde la interfaz web (se guarda en localStorage).
         // ============================================================================
-        const DEFAULT_API_KEY = "AQ.Ab8RN6K6FzwLed_vg4G6kunboP9KKLWW7aATeCd0z4wCoAkCPw";
+        const DEFAULT_API_KEY = "";
 
         const DYNAMIC_ACCENTS = {
             cyan: {
@@ -235,35 +235,66 @@
                     title: 'Consulta de Física',
                     messages: [{
                         role: 'model',
-                        content: '¡Hola! Soy **Física Master IA**, tu tutor especializado exclusivamente en **Física** (Termodinámica, Electromagnetismo, Óptica, Mecánica, etc.).\n\nEscribe tu duda o adjunta una foto de un problema, circuito o diagrama para resolverlo paso a paso.'
+                        content: '¡Hola! Soy **Física Master IA**, tu tutor especializado exclusivamente en **Física** (Termodinámica, Electromagnetismo, Óptica, Mecánica, etc.).\n\nEscribe tu duda, dicta por voz, envía un audio o adjunta una foto de un problema, circuito o diagrama para resolverlo paso a paso.'
                     }]
                 }];
             });
 
             const [currentChatId, setCurrentChatId] = useState(() => chats[0]?.id || 'chat_init');
 
-            // Guardar chats automáticamente en localStorage
+            // Guardar chats automáticamente en localStorage (omitiendo base64 pesados si excede cuota)
             useEffect(() => {
                 try {
                     localStorage.setItem('fisica_master_chats_v2', JSON.stringify(chats));
                 } catch (e) {
-                    console.error("Error guardando chats (posible límite de almacenamiento por imágenes):", e);
+                    try {
+                        const lightChats = chats.map(c => ({
+                            ...c,
+                            messages: c.messages.map(m => ({
+                                ...m,
+                                image: null,
+                                audio: null
+                            }))
+                        }));
+                        localStorage.setItem('fisica_master_chats_v2', JSON.stringify(lightChats));
+                    } catch (err2) {
+                        console.error("Error guardando chats en localStorage:", err2);
+                    }
                 }
             }, [chats]);
 
             const currentChat = chats.find(c => c.id === currentChatId) || chats[0];
 
-            // Estados del Chat Activo
+            // Estados del Chat Activo (texto, imagen, audio, reconocimiento de voz)
             const [inputMessage, setInputMessage] = useState('');
             const [selectedImage, setSelectedImage] = useState(null);
+            const [selectedAudio, setSelectedAudio] = useState(null);
+            const [isRecordingAudio, setIsRecordingAudio] = useState(false);
+            const [isRecognizingSpeech, setIsRecognizingSpeech] = useState(false);
             const [isLoading, setIsLoading] = useState(false);
             const [statusBanner, setStatusBanner] = useState(null);
+
             const fileInputRef = useRef(null);
+            const audioInputRef = useRef(null);
             const messagesEndRef = useRef(null);
+            const mediaRecorderRef = useRef(null);
+            const audioChunksRef = useRef([]);
+            const speechRecognitionRef = useRef(null);
 
             useEffect(() => {
                 messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
             }, [currentChat?.messages, isLoading, activeTab]);
+
+            useEffect(() => {
+                return () => {
+                    if (speechRecognitionRef.current) {
+                        try { speechRecognitionRef.current.stop(); } catch (e) {}
+                    }
+                    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                        try { mediaRecorderRef.current.stop(); } catch (e) {}
+                    }
+                };
+            }, []);
 
             // Crear nuevo chat
             const createNewChat = () => {
@@ -318,10 +349,152 @@
                 if (fileInputRef.current) fileInputRef.current.value = '';
             };
 
-            // Envío de mensaje a Gemini API
+            // Manejo de archivo de audio adjunto
+            const handleAudioFileUpload = (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (!file.type.startsWith('audio/')) {
+                    setStatusBanner("Por favor, selecciona un archivo de audio válido.");
+                    setTimeout(() => setStatusBanner(null), 3000);
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setSelectedAudio({
+                        dataUrl: reader.result,
+                        name: file.name,
+                        mimeType: file.type || 'audio/mp3'
+                    });
+                };
+                reader.readAsDataURL(file);
+            };
+
+            const clearAudio = () => {
+                setSelectedAudio(null);
+                if (audioInputRef.current) audioInputRef.current.value = '';
+            };
+
+            // Grabar nota de audio para enviar y reconocer con Gemini
+            const toggleAudioRecording = async () => {
+                if (isRecordingAudio) {
+                    try {
+                        mediaRecorderRef.current?.stop();
+                    } catch (e) {}
+                    setIsRecordingAudio(false);
+                    return;
+                }
+
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    setStatusBanner("Tu navegador no soporta grabación de audio.");
+                    setTimeout(() => setStatusBanner(null), 3500);
+                    return;
+                }
+
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    audioChunksRef.current = [];
+                    const recorder = new MediaRecorder(stream);
+                    mediaRecorderRef.current = recorder;
+
+                    recorder.ondataavailable = (event) => {
+                        if (event.data && event.data.size > 0) {
+                            audioChunksRef.current.push(event.data);
+                        }
+                    };
+
+                    recorder.onstop = () => {
+                        const mimeType = recorder.mimeType || 'audio/webm';
+                        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+                        stream.getTracks().forEach(t => t.stop());
+                        if (blob.size === 0) return;
+
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            setSelectedAudio({
+                                dataUrl: reader.result,
+                                name: 'Nota de voz.webm',
+                                mimeType
+                            });
+                        };
+                        reader.readAsDataURL(blob);
+                    };
+
+                    recorder.start();
+                    setIsRecordingAudio(true);
+                } catch (err) {
+                    setStatusBanner("No se pudo acceder al micrófono. Revisa los permisos del navegador.");
+                    setTimeout(() => setStatusBanner(null), 3500);
+                }
+            };
+
+            // Reconocimiento de voz en tiempo real hacia el campo de texto
+            const toggleSpeechRecognition = () => {
+                if (isRecognizingSpeech) {
+                    try {
+                        speechRecognitionRef.current?.stop();
+                    } catch (e) {}
+                    setIsRecognizingSpeech(false);
+                    return;
+                }
+
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!SpeechRecognition) {
+                    setStatusBanner("Reconocimiento de voz en vivo no disponible aquí; usa el botón de grabar audio.");
+                    setTimeout(() => setStatusBanner(null), 4000);
+                    return;
+                }
+
+                const recognition = new SpeechRecognition();
+                speechRecognitionRef.current = recognition;
+                recognition.lang = 'es-ES';
+                recognition.interimResults = true;
+                recognition.continuous = false;
+
+                const baseText = inputMessage.trim();
+
+                recognition.onstart = () => {
+                    setIsRecognizingSpeech(true);
+                };
+
+                recognition.onresult = (event) => {
+                    let transcript = '';
+                    for (let i = 0; i < event.results.length; i++) {
+                        transcript += event.results[i][0].transcript;
+                    }
+                    const combined = baseText ? `${baseText} ${transcript}`.trim() : transcript.trim();
+                    setInputMessage(combined);
+                };
+
+                recognition.onerror = () => {
+                    setIsRecognizingSpeech(false);
+                    setStatusBanner("Error en el reconocimiento de voz. Intenta de nuevo.");
+                    setTimeout(() => setStatusBanner(null), 3000);
+                };
+
+                recognition.onend = () => {
+                    setIsRecognizingSpeech(false);
+                };
+
+                try {
+                    recognition.start();
+                } catch (e) {
+                    setIsRecognizingSpeech(false);
+                }
+            };
+
+            // Envío de mensaje (texto, imagen y/o audio) a Gemini API
             const handleSendMessage = async (e) => {
                 if (e) e.preventDefault();
-                if ((!inputMessage.trim() && !selectedImage) || isLoading) return;
+                if ((!inputMessage.trim() && !selectedImage && !selectedAudio) || isLoading) return;
+
+                if (isRecognizingSpeech && speechRecognitionRef.current) {
+                    try { speechRecognitionRef.current.stop(); } catch (err) {}
+                    setIsRecognizingSpeech(false);
+                }
+                if (isRecordingAudio && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                    try { mediaRecorderRef.current.stop(); } catch (err) {}
+                    setIsRecordingAudio(false);
+                }
 
                 const effectiveKey = (apiKey || DEFAULT_API_KEY).trim();
                 if (!effectiveKey) {
@@ -333,16 +506,18 @@
                 const userMsg = {
                     role: 'user',
                     content: inputMessage.trim(),
-                    image: selectedImage
+                    image: selectedImage,
+                    audio: selectedAudio
                 };
 
-                // Actualizar estado local del chat
                 const updatedChats = chats.map(c => {
                     if (c.id === currentChatId) {
                         const newMessages = [...c.messages, userMsg];
                         let newTitle = c.title;
                         if (c.messages.length <= 1 && userMsg.content) {
                             newTitle = userMsg.content.slice(0, 28) + (userMsg.content.length > 28 ? '...' : '');
+                        } else if (c.messages.length <= 1 && userMsg.audio) {
+                            newTitle = 'Consulta de Audio Física';
                         } else if (c.messages.length <= 1 && userMsg.image) {
                             newTitle = 'Análisis de Imagen Física';
                         }
@@ -354,6 +529,7 @@
                 setChats(updatedChats);
                 setInputMessage('');
                 clearImage();
+                clearAudio();
                 setIsLoading(true);
 
                 try {
@@ -361,7 +537,7 @@
 REGLA ESTRICTA E INQUEBRANTABLE:
 Nunca uses código LaTeX, signos de dólar ($), barras invertidas (\\Delta, \\frac), asteriscos (**) ni almohadillas (###). Escribe todas las ecuaciones y unidades usando texto plano limpio y símbolos Unicode normales (por ejemplo: ΔU = Q - W, θ, η, ×, ÷, ², ³, √).
 Tu única área de conocimiento permitida es la FÍSICA. Si el usuario te pregunta, pide ayuda o conversa sobre cualquier tema ajeno a la física (por ejemplo: programación, historia, cocina, política, entretenimiento, biología sin enfoque biofísico, o matemáticas puras sin aplicación física), debes rechazar la solicitud de manera amable, breve y profesional, indicándole que estás programado exclusivamente para asistir con temas y problemas de Física.
-Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos, problemas escritos, gráficas):
+Si el usuario envía un audio, primero reconoce y transcribe brevemente lo que dijo o preguntó (si trata de Física), y luego resuelve el problema o responde la consulta de Física siguiendo estos pasos:
 1. Identifica los principios o leyes físicas involucradas.
 2. Extrae los datos conocidos y las incógnitas con sus unidades en el Sistema Internacional (SI).
 3. Muestra las fórmulas y desarrolla la resolución paso a paso con claridad y rigor científico.`;
@@ -373,6 +549,18 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                             const commaIdx = msg.image.indexOf(',');
                             const mimeType = msg.image.substring(5, msg.image.indexOf(';'));
                             const base64Data = msg.image.substring(commaIdx + 1);
+                            parts.push({
+                                inline_data: {
+                                    mime_type: mimeType,
+                                    data: base64Data
+                                }
+                            });
+                        }
+                        if (msg.audio && msg.audio.dataUrl) {
+                            const commaIdx = msg.audio.dataUrl.indexOf(',');
+                            const parsedMime = msg.audio.dataUrl.substring(5, msg.audio.dataUrl.indexOf(';'));
+                            const mimeType = parsedMime || msg.audio.mimeType || 'audio/webm';
+                            const base64Data = msg.audio.dataUrl.substring(commaIdx + 1);
                             parts.push({
                                 inline_data: {
                                     mime_type: mimeType,
@@ -640,6 +828,14 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                                             />
                                                         </div>
                                                     )}
+                                                    {msg.audio && msg.audio.dataUrl && (
+                                                        <div className={`mb-3 rounded-xl p-2 ${isUser ? 'bg-white/15 border border-white/25' : 'bg-slate-50 border border-slate-200'}`}>
+                                                            <p className={`text-[11px] font-medium mb-1 ${isUser ? 'text-white/90' : 'text-slate-500'}`}>
+                                                                Audio: {msg.audio.name || 'Grabación de voz'}
+                                                            </p>
+                                                            <audio controls src={msg.audio.dataUrl} className="w-full h-8" />
+                                                        </div>
+                                                    )}
                                                     <div className="whitespace-pre-wrap break-words">{msg.content}</div>
                                                 </div>
                                                 {isUser && (
@@ -664,7 +860,7 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                     <div ref={messagesEndRef} />
                                 </div>
 
-                                {/* Barra inferior fija para texto e imágenes */}
+                                {/* Barra inferior fija para texto, voz, audio e imágenes */}
                                 <div className="p-4 bg-[#f8fafc] border-t border-slate-200 shrink-0">
                                     <form onSubmit={handleSendMessage} className={`bg-white border border-slate-200 ${accent.focus} rounded-2xl p-2.5 shadow-sm space-y-2.5 transition-all`}>
                                         {/* Vista previa de imagen antes de enviar */}
@@ -687,12 +883,40 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                                 </button>
                                             </div>
                                         )}
-                                        <div className="flex items-center gap-2">
+
+                                        {/* Vista previa de audio antes de enviar */}
+                                        {selectedAudio && (
+                                            <div className="flex items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                                                <div className="flex-1 min-w-0 space-y-1">
+                                                    <p className="text-xs font-semibold text-slate-800 truncate">
+                                                        Audio listo para reconocer: {selectedAudio.name}
+                                                    </p>
+                                                    <audio controls src={selectedAudio.dataUrl} className="w-full h-8" />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={clearAudio}
+                                                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors shrink-0"
+                                                    title="Quitar audio"
+                                                >
+                                                    <Icon name="x" className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        <div className="flex items-center gap-1.5 sm:gap-2">
                                             <input
                                                 type="file"
                                                 accept="image/*"
                                                 ref={fileInputRef}
                                                 onChange={handleImageUpload}
+                                                className="hidden"
+                                            />
+                                            <input
+                                                type="file"
+                                                accept="audio/*"
+                                                ref={audioInputRef}
+                                                onChange={handleAudioFileUpload}
                                                 className="hidden"
                                             />
                                             <button
@@ -703,16 +927,48 @@ Cuando el usuario envíe consultas o imágenes de Física (diagramas, circuitos,
                                             >
                                                 <Icon name="image-plus" className="w-5 h-5" />
                                             </button>
+                                            <button
+                                                type="button"
+                                                onClick={toggleSpeechRecognition}
+                                                className={`p-3 rounded-xl border transition-all shrink-0 active:scale-95 ${
+                                                    isRecognizingSpeech
+                                                        ? 'bg-rose-50 text-rose-600 border-rose-300 animate-pulse'
+                                                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                                                }`}
+                                                title={isRecognizingSpeech ? "Detener dictado por voz" : "Dictar por voz al texto"}
+                                            >
+                                                <Icon name="mic" className="w-5 h-5" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={toggleAudioRecording}
+                                                className={`p-3 rounded-xl border transition-all shrink-0 active:scale-95 ${
+                                                    isRecordingAudio
+                                                        ? 'bg-rose-600 text-white border-rose-600 animate-pulse'
+                                                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                                                }`}
+                                                title={isRecordingAudio ? "Detener grabación de audio" : "Grabar nota de audio para enviar"}
+                                            >
+                                                <Icon name={isRecordingAudio ? "square" : "radio"} className="w-5 h-5" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => audioInputRef.current?.click()}
+                                                className="p-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-all shrink-0 active:scale-95"
+                                                title="Adjuntar archivo de audio"
+                                            >
+                                                <Icon name="file-audio" className="w-5 h-5" />
+                                            </button>
                                             <input
                                                 type="text"
                                                 value={inputMessage}
                                                 onChange={(e) => setInputMessage(e.target.value)}
-                                                placeholder="Escribe tu duda de Termodinámica, Electromagnetismo u Óptica..."
-                                                className="flex-1 bg-transparent px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none"
+                                                placeholder={isRecognizingSpeech ? "Escuchando tu voz..." : "Escribe o dicta tu duda de Física..."}
+                                                className="flex-1 min-w-0 bg-transparent px-2.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none"
                                             />
                                             <button
                                                 type="submit"
-                                                disabled={isLoading || (!inputMessage.trim() && !selectedImage)}
+                                                disabled={isLoading || (!inputMessage.trim() && !selectedImage && !selectedAudio)}
                                                 className={`px-5 py-2.5 rounded-xl bg-gradient-to-r ${accent.btn} disabled:opacity-40 disabled:pointer-events-none text-white text-sm font-semibold flex items-center gap-2 shadow-sm transition-all shrink-0 active:scale-[0.98]`}
                                             >
                                                 <span className="hidden sm:inline">Enviar</span>
